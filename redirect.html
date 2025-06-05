@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script>
+        (async function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('id');
+                const targetUrl = decodeURIComponent(urlParams.get('url'));
+
+                let qrCodesData = JSON.parse(localStorage.getItem('qrCodesData')) || { codes: [] };
+                const code = qrCodesData.codes.find(c => c.id === id);
+
+                if (code) {
+                    const visitorId = localStorage.getItem('visitorId') || Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('visitorId', visitorId);
+
+                    const userAgent = navigator.userAgent;
+                    let os = 'Unknown';
+                    if (userAgent.indexOf('Win') !== -1) os = 'Windows';
+                    else if (userAgent.indexOf('Mac') !== -1) os = 'OSX';
+                    else if (userAgent.indexOf('Linux') !== -1) os = 'Linux';
+                    else if (userAgent.indexOf('Android') !== -1) os = 'Android';
+                    else if (userAgent.indexOf('iPhone') !== -1 || userAgent.indexOf('iPad') !== -1) os = 'iOS';
+
+                    code.scans = code.scans || [];
+                    code.visitors = code.visitors || [];
+
+                    code.scans.push({
+                        timestamp: new Date().toISOString(),
+                        visitorId,
+                        os
+                    });
+                    code.totalScans = (code.totalScans || 0) + 1;
+
+                    if (!code.visitors.includes(visitorId)) {
+                        code.visitors.push(visitorId);
+                        code.uniqueScans = (code.uniqueScans || 0) + 1;
+                    }
+
+                    localStorage.setItem('qrCodesData', JSON.stringify(qrCodesData));
+                }
+
+                window.location.replace(targetUrl);
+            } catch {
+                const targetUrl = new URLSearchParams(window.location.search).get('url');
+                if (targetUrl) window.location.replace(decodeURIComponent(targetUrl));
+            }
+        })();
+    </script>
+</head>
+</html> 

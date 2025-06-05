@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script>
+        (async function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('id');
+                const targetUrl = decodeURIComponent(urlParams.get('url'));
+
+                // Get OS info
+                const userAgent = navigator.userAgent;
+                let os = 'Unknown';
+                if (userAgent.indexOf('Win') !== -1) os = 'Windows';
+                else if (userAgent.indexOf('Mac') !== -1) os = 'OSX';
+                else if (userAgent.indexOf('Linux') !== -1) os = 'Linux';
+                else if (userAgent.indexOf('Android') !== -1) os = 'Android';
+                else if (userAgent.indexOf('iPhone') !== -1 || userAgent.indexOf('iPad') !== -1) os = 'iOS';
+
+                // Record scan via API
+                try {
+                    await fetch('https://mapmagnet.co/api/record-scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Visitor-Id': localStorage.getItem('visitorId') || Math.random().toString(36).substr(2, 9)
+                        },
+                        body: JSON.stringify({
+                            qrId: id,
+                            timestamp: new Date().toISOString(),
+                            os: os
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to record scan:', error);
+                }
+
+                // Redirect to target URL
+                window.location.replace(targetUrl);
+            } catch (error) {
+                console.error('Error in tracking page:', error);
+                const targetUrl = new URLSearchParams(window.location.search).get('url');
+                if (targetUrl) window.location.replace(decodeURIComponent(targetUrl));
+            }
+        })();
+    </script>
+</head>
+</html> 

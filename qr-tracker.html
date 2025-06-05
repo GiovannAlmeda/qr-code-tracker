@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator & Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="loadingIndicator" class="fixed top-0 left-0 w-full bg-blue-500 text-white text-center p-2" style="display: none;">
+        Loading...
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">QR Code Generator</h1>
+        </header>
+
+        <!-- QR Code Generator Section -->
+        <div id="generatorSection" class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Create your QR Code</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Website URL</label>
+                    <input type="text" id="urlInput" class="w-full p-2 border rounded" placeholder="https://www.your-website.com">
+                </div>
+                <button id="generateQR" class="bg-blue-500 text-white px-6 py-2 rounded">Generate QR Code</button>
+                <div id="qrOutput" class="mt-4 text-center"></div>
+            </div>
+        </div>
+
+        <!-- QR Codes List Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Your QR Codes</h2>
+                <div class="flex space-x-2">
+                    <button id="downloadCSV" class="bg-gray-200 px-4 py-2 rounded">Download CSV</button>
+                    <select id="sortBy" class="border rounded px-4 py-2">
+                        <option value="date">Last Created</option>
+                        <option value="scans">Total Scans</option>
+                    </select>
+                </div>
+            </div>
+            <div id="qrCodesList" class="space-y-6"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let qrCodesData = JSON.parse(localStorage.getItem('qrCodesData')) || {
+                codes: []
+            };
+
+            // Save data to localStorage
+            function saveData() {
+                localStorage.setItem('qrCodesData', JSON.stringify(qrCodesData));
+            }
+
+            // Generate unique ID for QR codes
+            function generateId() {
+                return Math.random().toString(36).substr(2, 9);
+            }
+
+            // Generate tracking URL
+            function generateTrackingUrl(url, id) {
+                return `https://mapmagnet.co/tracking-page-page?id=${id}&url=${encodeURIComponent(url)}`;
+            }
+
+            // Generate QR Code
+            async function generateQRCode(url) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    await QRCode.toCanvas(canvas, url, {
+                        width: 200,
+                        margin: 2,
+                        errorCorrectionLevel: 'H',
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    });
+                    return canvas;
+                } catch (err) {
+                    console.error('Error generating QR code:', err);
+                    return null;
+                }
+            }
+
+            // Record a scan
+            function recordScan(id) {
+                const code = qrCodesData.codes.find(c => c.id === id);
+                if (!code) return;
+
+                const visitorId = localStorage.getItem('visitorId') || Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('visitorId', visitorId);
+
+                const userAgent = navigator.userAgent;
+                let os = 'Unknown';
+                if (userAgent.indexOf('Win') !== -1) os = 'Windows';
+                else if (userAgent.indexOf('Mac') !== -1) os = 'OSX';
+                else if (userAgent.indexOf('Linux') !== -1) os = 'Linux';
+                else if (userAgent.indexOf('Android') !== -1) os = 'Android';
+                else if (userAgent.indexOf('iPhone') !== -1 || userAgent.indexOf('iPad') !== -1) os = 'iOS';
+
+                const scan = {
+                    timestamp: new Date().toISOString(),
+                    visitorId,
+                    os
+                };
+
+                code.scans = code.scans || [];
+                code.visitors = code.visitors || [];
+
+                code.scans.push(scan);
+                code.totalScans = (code.totalScans || 0) + 1;
+
+                if (!code.visitors.includes(visitorId)) {
+                    code.visitors.push(visitorId);
+                    code.uniqueScans = (code.uniqueScans || 0) + 1;
+                }
+
+                saveData();
+                updateQRCodesList();
+            }
+
+            // Add new QR code
+            async function addQRCode(url) {
+                const id = generateId();
+                
+                const qrCode = {
+                    id,
+                    originalUrl: url,
+                    created: new Date().toISOString(),
+                    totalScans: 0,
+                    uniqueScans: 0,
+                    scans: [],
+                    visitors: []
+                };
+
+                qrCodesData.codes.push(qrCode);
+                saveData();
+                await updateQRCodesList();
+                return qrCode;
+            }
+
+            // Create chart for a QR code
+            function createChart(code, canvasId) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const dailyData = prepareDailyData(code);
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dailyData.labels,
+                        datasets: [{
+                            label: 'Daily Scans',
+                            data: dailyData.data,
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgb(59, 130, 246)',
+                            borderWidth: 1,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Prepare daily scan data
+            function prepareDailyData(code) {
+                const dailyScans = {};
+                const today = new Date().toLocaleDateString();
+                
+                // Initialize last 7 days
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    dailyScans[date.toLocaleDateString()] = 0;
+                }
+
+                // Count scans per day
+                code.scans.forEach(scan => {
+                    const date = new Date(scan.timestamp).toLocaleDateString();
+                    dailyScans[date] = (dailyScans[date] || 0) + 1;
+                });
+
+                return {
+                    labels: Object.keys(dailyScans),
+                    data: Object.values(dailyScans),
+                    today: dailyScans[today] || 0
+                };
+            }
+
+            // Create scan animation
+            function createScanAnimation(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                const dot = document.createElement('div');
+                dot.className = 'absolute w-2 h-2 bg-blue-500 rounded-full';
+                
+                const position = Math.random() * (container.offsetWidth - 8);
+                dot.style.left = `${position}px`;
+                dot.style.top = '100%';
+                
+                container.appendChild(dot);
+
+                dot.animate([
+                    { top: '100%', opacity: 0 },
+                    { top: '0%', opacity: 1 },
+                    { top: '0%', opacity: 0 }
+                ], {
+                    duration: 1500,
+                    easing: 'ease-out'
+                }).onfinish = () => dot.remove();
+            }
+
+            // Update QR codes list in UI
+            async function updateQRCodesList() {
+                const container = document.getElementById('qrCodesList');
+                container.innerHTML = '';
+
+                const sortBy = document.getElementById('sortBy').value;
+                const sortedCodes = [...qrCodesData.codes].sort((a, b) => {
+                    if (sortBy === 'date') {
+                        return new Date(b.created) - new Date(a.created);
+                    }
+                    return b.totalScans - a.totalScans;
+                });
+
+                for (const code of sortedCodes) {
+                    const element = document.createElement('div');
+                    element.className = 'border rounded-lg p-6 space-y-4';
+                    
+                    // Create header with QR code and info
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'flex items-start space-x-6';
+                    
+                    const trackingUrl = generateTrackingUrl(code.originalUrl, code.id);
+                    const qrCanvas = await generateQRCode(trackingUrl);
+                    qrCanvas.className = 'w-32 h-32';
+                    qrCanvas.onclick = () => {
+                        window.open(code.originalUrl, '_blank');
+                    };
+                    qrCanvas.style.cursor = 'pointer';
+                    headerDiv.appendChild(qrCanvas);
+
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'flex-1';
+                    infoDiv.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-medium text-lg">${code.originalUrl}</div>
+                                <div class="text-sm text-gray-500">Created: ${new Date(code.created).toLocaleDateString()}</div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="downloadQR('${code.id}')" class="bg-gray-200 px-3 py-1 rounded text-sm">Download QR</button>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center space-x-8">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-blue-500" id="todayScans-${code.id}">
+                                    ${prepareDailyData(code).today}
+                                </div>
+                                <div class="text-sm text-gray-500">Today</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-500">${code.totalScans || 0}</div>
+                                <div class="text-sm text-gray-500">Total Scans</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-purple-500">${code.uniqueScans || 0}</div>
+                                <div class="text-sm text-gray-500">Unique Visitors</div>
+                            </div>
+                        </div>
+                    `;
+                    headerDiv.appendChild(infoDiv);
+                    element.appendChild(headerDiv);
+
+                    // Create live scan animation container
+                    const liveScansDiv = document.createElement('div');
+                    liveScansDiv.className = 'h-8 relative overflow-hidden bg-gray-50 rounded';
+                    liveScansDiv.id = `liveScans-${code.id}`;
+                    element.appendChild(liveScansDiv);
+
+                    // Create chart container
+                    const chartContainer = document.createElement('div');
+                    chartContainer.className = 'h-48';
+                    const canvas = document.createElement('canvas');
+                    canvas.id = `chart-${code.id}`;
+                    chartContainer.appendChild(canvas);
+                    element.appendChild(chartContainer);
+
+                    container.appendChild(element);
+
+                    // Initialize chart
+                    createChart(code, `chart-${code.id}`);
+                }
+            }
+
+            // Download QR code as PNG
+            window.downloadQR = async function(id) {
+                const code = qrCodesData.codes.find(c => c.id === id);
+                if (!code) return;
+
+                const canvas = await generateQRCode(code.originalUrl);
+                const link = document.createElement('a');
+                link.download = `qr-${id}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            };
+
+            // Download CSV
+            document.getElementById('downloadCSV').addEventListener('click', () => {
+                const csvContent = [
+                    ['ID', 'URL', 'Created', 'Total Scans', 'Unique Scans'],
+                    ...qrCodesData.codes.map(code => [
+                        code.id,
+                        code.originalUrl,
+                        code.created,
+                        code.totalScans,
+                        code.uniqueScans
+                    ])
+                ].map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'qr-codes-export.csv';
+                link.click();
+            });
+
+            // Event Listeners
+            document.getElementById('generateQR').addEventListener('click', async () => {
+                const url = document.getElementById('urlInput').value;
+                if (!url) {
+                    alert('Please enter a URL');
+                    return;
+                }
+
+                try {
+                    const urlObject = new URL(url);
+                    await addQRCode(url);
+                    document.getElementById('urlInput').value = '';
+                } catch (error) {
+                    alert('Please enter a valid URL (including http:// or https://)');
+                }
+            });
+
+            document.getElementById('sortBy').addEventListener('change', updateQRCodesList);
+
+            // Initial load
+            updateQRCodesList();
+        });
+    </script>
+</body>
+</html> 

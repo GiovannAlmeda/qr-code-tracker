@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator & Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="loadingIndicator" class="fixed top-0 left-0 w-full bg-blue-500 text-white text-center p-2" style="display: none;">
+        Loading...
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">QR Code Generator</h1>
+        </header>
+
+        <!-- QR Code Generator Section -->
+        <div id="generatorSection" class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Create your QR Code</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Website URL</label>
+                    <input type="text" id="urlInput" class="w-full p-2 border rounded" placeholder="https://www.your-website.com">
+                </div>
+                <button id="generateQR" class="bg-blue-500 text-white px-6 py-2 rounded">Generate QR Code</button>
+                <div id="qrOutput" class="mt-4 text-center"></div>
+            </div>
+        </div>
+
+        <!-- QR Codes List Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Your QR Codes</h2>
+                <div class="flex space-x-2">
+                    <button id="downloadCSV" class="bg-gray-200 px-4 py-2 rounded">Download CSV</button>
+                    <select id="sortBy" class="border rounded px-4 py-2">
+                        <option value="date">Last Created</option>
+                        <option value="scans">Total Scans</option>
+                    </select>
+                </div>
+            </div>
+            <div id="qrCodesList" class="space-y-6"></div>
+        </div>
+
+        <!-- Analytics Modal -->
+        <div id="analyticsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-4xl mx-auto mt-20">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">QR Code Analytics</h3>
+                    <button class="closeModal text-gray-500">&times;</button>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <canvas id="scansChart"></canvas>
+                    </div>
+                    <div>
+                        <canvas id="osChart"></canvas>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Top Countries</h4>
+                        <div id="countriesList"></div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Top Cities</h4>
+                        <div id="citiesList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        console.log('Script starting...');
+        
+        document.getElementById('loadingIndicator').style.display = 'block';
+
+        console.log('QRCode library loaded:', typeof QRCode !== 'undefined');
+        console.log('Chart library loaded:', typeof Chart !== 'undefined');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            try {
+                let qrCodesData = { codes: [] };
+
+                // Fetch QR codes from API
+                async function fetchQRCodes() {
+                    try {
+                        const response = await fetch('https://mapmagnet.co/api/qr-codes');
+                        const data = await response.json();
+                        qrCodesData.codes = data;
+                        await updateQRCodesList();
+                    } catch (error) {
+                        console.error('Failed to fetch QR codes:', error);
+                    }
+                }
+
+                // Generate unique ID for QR codes
+                function generateId() {
+                    return Math.random().toString(36).substr(2, 9);
+                }
+
+                // Generate tracking URL
+                function generateTrackingUrl(url, id) {
+                    const baseUrl = window.location.origin;
+                    return `${baseUrl}/tracking-page-page?id=${id}&url=${encodeURIComponent(url)}`;
+                }
+
+                // Generate QR Code
+                async function generateQRCode(url) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        await QRCode.toCanvas(canvas, url, {
+                            width: 200,
+                            margin: 2,
+                            errorCorrectionLevel: 'H',
+                            color: {
+                                dark: '#000000',
+                                light: '#ffffff'
+                            }
+                        });
+                        return canvas;
+                    } catch (err) {
+                        console.error('Error generating QR code:', err);
+                        return null;
+                    }
+                }
+
+                // Add new QR code
+                async function addQRCode(url) {
+                    const id = generateId();
+                    
+                    const qrCode = {
+                        id,
+                        originalUrl: url,
+                        created: new Date().toISOString(),
+                        totalScans: 0,
+                        uniqueScans: 0,
+                        scans: [],
+                        visitors: []
+                    };
+
+                    try {
+                        await fetch('https://mapmagnet.co/api/qr-codes', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(qrCode)
+                        });
+                        
+                        await fetchQRCodes(); // Refresh the list
+                    } catch (error) {
+                        console.error('Failed to create QR code:', error);
+                    }
+                }
+
+                // Update QR codes list in UI
+                async function updateQRCodesList() {
+                    console.log('Checking for updates...');
+                    // Refresh data from localStorage first
+                    const freshData = JSON.parse(localStorage.getItem('qrCodesData')) || { codes: [] };
+                    console.log('Fresh data from localStorage:', freshData);
+                    
+                    // Check if we have new data
+                    if (JSON.stringify(freshData) !== JSON.stringify(qrCodesData)) {
+                        console.log('New data found! Updating display...');
+                        qrCodesData = freshData;
+                    } else {
+                        console.log('No new data found');
+                    }
+                    
+                    const container = document.getElementById('qrCodesList');
+                    container.innerHTML = '';
+
+                    const sortBy = document.getElementById('sortBy').value;
+                    const sortedCodes = [...qrCodesData.codes].sort((a, b) => {
+                        if (sortBy === 'date') {
+                            return new Date(b.created) - new Date(a.created);
+                        }
+                        return b.totalScans - a.totalScans;
+                    });
+
+                    for (const code of sortedCodes) {
+                        const element = document.createElement('div');
+                        element.className = 'border rounded-lg p-6 space-y-4';
+                        
+                        // Create the header section with QR code and basic info
+                        const headerDiv = document.createElement('div');
+                        headerDiv.className = 'flex items-start space-x-6';
+                        
+                        const trackingUrl = generateTrackingUrl(code.originalUrl, code.id);
+                        const qrCanvas = await generateQRCode(trackingUrl);
+                        qrCanvas.className = 'w-32 h-32';
+                        headerDiv.appendChild(qrCanvas);
+
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'flex-1';
+                        infoDiv.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-medium text-lg">${code.originalUrl}</div>
+                                    <div class="text-sm text-gray-500">Created: ${new Date(code.created).toLocaleDateString()}</div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="downloadQR('${code.id}')" class="bg-gray-200 px-3 py-1 rounded text-sm">Download QR</button>
+                                    <button onclick="confirmDelete('${code.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center space-x-8">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-blue-500" id="todayScans-${code.id}">0</div>
+                                    <div class="text-sm text-gray-500">Today</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-green-500">${code.totalScans || 0}</div>
+                                    <div class="text-sm text-gray-500">Total Scans</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-purple-500">${code.uniqueScans || 0}</div>
+                                    <div class="text-sm text-gray-500">Unique Visitors</div>
+                                </div>
+                            </div>
+                        `;
+                        headerDiv.appendChild(infoDiv);
+                        element.appendChild(headerDiv);
+
+                        // Create live scan animation container
+                        const liveScansDiv = document.createElement('div');
+                        liveScansDiv.className = 'h-8 relative overflow-hidden bg-gray-50 rounded';
+                        liveScansDiv.id = `liveScans-${code.id}`;
+                        element.appendChild(liveScansDiv);
+
+                        // Create chart container
+                        const chartContainer = document.createElement('div');
+                        chartContainer.className = 'h-48';
+                        const canvas = document.createElement('canvas');
+                        canvas.id = `chart-${code.id}`;
+                        chartContainer.appendChild(canvas);
+                        element.appendChild(chartContainer);
+
+                        container.appendChild(element);
+
+                        // Initialize chart and data
+                        createChart(code);
+                        updateTodayScans(code);
+                    }
+                }
+
+                function prepareDailyData(code) {
+                    const dailyScans = {};
+                    const today = new Date().toLocaleDateString();
+                    
+                    // Initialize last 7 days
+                    for (let i = 6; i >= 0; i--) {
+                        const date = new Date();
+                        date.setDate(date.getDate() - i);
+                        dailyScans[date.toLocaleDateString()] = 0;
+                    }
+
+                    // Count scans per day
+                    code.scans.forEach(scan => {
+                        const date = new Date(scan.timestamp).toLocaleDateString();
+                        dailyScans[date] = (dailyScans[date] || 0) + 1;
+                    });
+
+                    return {
+                        labels: Object.keys(dailyScans),
+                        data: Object.values(dailyScans),
+                        today: dailyScans[today] || 0
+                    };
+                }
+
+                function createChart(code) {
+                    const data = prepareDailyData(code);
+                    const ctx = document.getElementById(`chart-${code.id}`).getContext('2d');
+                    
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: 'Daily Scans',
+                                data: data.data,
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                                borderColor: 'rgb(59, 130, 246)',
+                                borderWidth: 1,
+                                borderRadius: 5,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                function createScanAnimation(codeId) {
+                    const container = document.getElementById(`liveScans-${codeId}`);
+                    if (!container) return;
+
+                    const dot = document.createElement('div');
+                    dot.className = 'absolute w-2 h-2 bg-blue-500 rounded-full';
+                    
+                    const position = Math.random() * (container.offsetWidth - 8);
+                    dot.style.left = `${position}px`;
+                    dot.style.top = '100%';
+                    
+                    container.appendChild(dot);
+
+                    dot.animate([
+                        { top: '100%', opacity: 0 },
+                        { top: '0%', opacity: 1 },
+                        { top: '0%', opacity: 0 }
+                    ], {
+                        duration: 1500,
+                        easing: 'ease-out'
+                    }).onfinish = () => dot.remove();
+                }
+
+                function updateTodayScans(code) {
+                    const data = prepareDailyData(code);
+                    const counter = document.getElementById(`todayScans-${code.id}`);
+                    if (counter) {
+                        counter.textContent = data.today;
+                    }
+                }
+
+                // Set up real-time updates
+                setInterval(() => {
+                    qrCodesData.codes.forEach(code => {
+                        updateTodayScans(code);
+                        if (Math.random() > 0.7) { // 30% chance of new scan animation
+                            createScanAnimation(code.id);
+                        }
+                    });
+                }, 2000);
+
+                // Show analytics for a specific QR code
+                window.showAnalytics = function(id) {
+                    const code = qrCodesData.codes.find(c => c.id === id);
+                    if (!code) return;
+
+                    // Show modal
+                    document.getElementById('analyticsModal').classList.remove('hidden');
+
+                    // Prepare data for charts
+                    const scansData = prepareScanData(code);
+                    const osData = prepareOSData(code);
+                    
+                    // Create charts
+                    createScansChart(scansData);
+                    createOSChart(osData);
+                    
+                    // Update lists
+                    updateLocationLists(code);
+                }
+
+                // Prepare scan data for chart
+                function prepareScanData(code) {
+                    const dates = {};
+                    code.scans.forEach(scan => {
+                        const date = new Date(scan.timestamp).toLocaleDateString();
+                        dates[date] = (dates[date] || 0) + 1;
+                    });
+                    
+                    return {
+                        labels: Object.keys(dates),
+                        data: Object.values(dates)
+                    };
+                }
+
+                // Prepare OS data for chart
+                function prepareOSData(code) {
+                    const os = {};
+                    code.scans.forEach(scan => {
+                        os[scan.os] = (os[scan.os] || 0) + 1;
+                    });
+                    
+                    return {
+                        labels: Object.keys(os),
+                        data: Object.values(os)
+                    };
+                }
+
+                // Create scans chart
+                function createScansChart(data) {
+                    const ctx = document.getElementById('scansChart').getContext('2d');
+                    if (window.scansChart) {
+                        window.scansChart.destroy();
+                    }
+                    window.scansChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: 'Scans Over Time',
+                                data: data.data,
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.1,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Daily Scan Activity'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Create OS chart
+                function createOSChart(data) {
+                    const ctx = document.getElementById('osChart').getContext('2d');
+                    if (window.osChart) {
+                        window.osChart.destroy();
+                    }
+                    window.osChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                data: data.data,
+                                backgroundColor: [
+                                    'rgb(59, 130, 246)',  // Blue
+                                    'rgb(16, 185, 129)',  // Green
+                                    'rgb(239, 68, 68)',   // Red
+                                    'rgb(245, 158, 11)',  // Orange
+                                    'rgb(139, 92, 246)'   // Purple
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'right'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Operating System Distribution'
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update location lists
+                function updateLocationLists(code) {
+                    const countries = {};
+                    const cities = {};
+                    
+                    code.scans.forEach(scan => {
+                        countries[scan.country] = (countries[scan.country] || 0) + 1;
+                        cities[scan.city] = (cities[scan.city] || 0) + 1;
+                    });
+
+                    const countriesList = document.getElementById('countriesList');
+                    const citiesList = document.getElementById('citiesList');
+                    
+                    const createLocationList = (data) => {
+                        return Object.entries(data)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([location, count]) => `
+                                <div class="flex justify-between py-2 border-b border-gray-100">
+                                    <span class="font-medium">${location}</span>
+                                    <span class="bg-blue-100 text-blue-800 px-2 rounded-full">${count}</span>
+                                </div>
+                            `).join('');
+                    };
+
+                    countriesList.innerHTML = createLocationList(countries);
+                    citiesList.innerHTML = createLocationList(cities);
+                }
+
+                // Download QR code as PNG
+                async function downloadQR(id) {
+                    const code = qrCodesData.codes.find(c => c.id === id);
+                    if (!code) return;
+
+                    const canvas = await generateQRCode(code.originalUrl);
+                    const link = document.createElement('a');
+                    link.download = `qr-${id}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                }
+
+                // Export data as CSV
+                function downloadCSV() {
+                    const csvContent = [
+                        ['ID', 'URL', 'Created', 'Total Scans', 'Unique Scans'],
+                        ...qrCodesData.codes.map(code => [
+                            code.id,
+                            code.originalUrl,
+                            code.created,
+                            code.totalScans,
+                            code.uniqueScans
+                        ])
+                    ].map(row => row.join(',')).join('\n');
+
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'qr-codes-export.csv';
+                    link.click();
+                }
+
+                // Delete QR code
+                window.confirmDelete = async function(id) {
+                    if (confirm('Are you sure you want to delete this QR code?')) {
+                        try {
+                            await fetch(`https://mapmagnet.co/api/qr-codes/${id}`, {
+                                method: 'DELETE'
+                            });
+                            await fetchQRCodes(); // Refresh the list
+                        } catch (error) {
+                            console.error('Failed to delete QR code:', error);
+                        }
+                    }
+                };
+
+                // Event Listeners
+                document.getElementById('generateQR').addEventListener('click', async () => {
+                    const url = document.getElementById('urlInput').value;
+                    if (!url) {
+                        alert('Please enter a URL');
+                        return;
+                    }
+
+                    try {
+                        const urlObject = new URL(url);
+                        await addQRCode(url);
+                        document.getElementById('urlInput').value = '';
+                    } catch (error) {
+                        alert('Please enter a valid URL (including http:// or https://)');
+                    }
+                });
+
+                document.getElementById('sortBy').addEventListener('change', updateQRCodesList);
+                document.getElementById('downloadCSV').addEventListener('click', downloadCSV);
+
+                document.querySelectorAll('.closeModal').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.getElementById('analyticsModal').classList.add('hidden');
+                    });
+                });
+
+                // Initial load
+                console.log('Initial load of dashboard');
+                fetchQRCodes();
+
+                // Auto-refresh every 5 seconds
+                console.log('Setting up auto-refresh');
+                setInterval(fetchQRCodes, 5000);
+
+                // Hide loading indicator when everything is ready
+                document.getElementById('loadingIndicator').style.display = 'none';
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                document.getElementById('loadingIndicator').textContent = 'Error loading application. Please refresh the page.';
+            }
+        });
+
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+            return false;
+        };
+    </script>
+</body>
+</html> 
