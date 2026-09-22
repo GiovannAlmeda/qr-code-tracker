@@ -1,8 +1,13 @@
 node_modules/
-   .env
-   .DS_Store
+.DS_Store
 
-# Healthy Walk
-healthy-walk/.env
-healthy-walk/data/cache/
-healthy-walk/node_modules/
+# Secrets. These patterns previously had leading spaces, which git treats as
+# part of the pattern — so `.env` was not actually being ignored.
+.env
+.env.*
+!.env.example
+
+# Healthy Walk runtime state: the API-spend ledger, saved dishes, and the
+# cache. All per-machine, and none of it belongs in the repo — committing
+# the ledger would hand a fresh clone someone else's spend total.
+healthy-walk/data/
