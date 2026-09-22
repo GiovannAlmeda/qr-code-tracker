@@ -56,7 +56,6 @@ export const SEED_OILS = [
   'safflower oil',
   'grapeseed oil', 'grape seed oil',
   'rice bran oil',
-  'sesame oil',
   // The catch-all on a fryer label. In practice it is a seed oil blend.
   'vegetable oil', 'veg oil', 'salad oil', 'frying oil', 'fryer oil',
   'blended oil', 'oil blend', 'shortening', 'margarine',
@@ -68,7 +67,14 @@ export const SEED_OILS = [
  * some seed-oil avoiders accept it while others don't. We flag it separately
  * rather than picking a side, and the card says why.
  */
-export const CONTESTED_OILS = ['peanut oil', 'groundnut oil'];
+export const CONTESTED_OILS = [
+  'peanut oil', 'groundnut oil',
+  // Sesame oil splits the room. It's a seed oil by botany, but it's used by
+  // the teaspoon as a finishing flavour rather than by the litre in a fryer,
+  // and plenty of people avoiding seed oils still cook with it. Hard-listing
+  // it would strike out most of an Asian menu over a quarter-teaspoon.
+  'sesame oil', 'toasted sesame oil', 'chili oil',
+];
 
 export const PREFERRED_FATS = {
   avocado: ['avocado oil'],
@@ -183,6 +189,24 @@ export const ALLERGEN_KEYWORDS = {
  * compounds, then scan on word boundaries.
  */
 
+/**
+ * Phrases that mean something other than their parts. Rewritten before any
+ * matching so the specific reading always wins over the generic one.
+ */
+const CANONICAL_PHRASES = [
+  [/\bbeef shortening\b/g, 'beef tallow'],
+  [/\banimal shortening\b/g, 'beef tallow'],
+  [/\bclarified butter\b/g, 'ghee'],
+  [/\bextra[- ]virgin olive oil\b/g, 'olive oil'],
+  [/\bcold[- ]pressed avocado oil\b/g, 'avocado oil'],
+];
+
+function canonicalise(text) {
+  let out = text;
+  for (const [pattern, replacement] of CANONICAL_PHRASES) out = out.replace(pattern, replacement);
+  return out;
+}
+
 const normalise = (text) =>
   ` ${String(text ?? '')
     .toLowerCase()
@@ -190,6 +214,8 @@ const normalise = (text) =>
     .replace(/[^a-z0-9\s-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()} `;
+
+const prepare = (text) => canonicalise(normalise(text));
 
 /** "no bun", "without cheese", "hold the pita", "served without rice". */
 const NEGATION = /\b(?:no|without|hold the|minus|free of|free from|skip the|sans)\s+(?:the\s+)?([a-z-]+(?:\s+[a-z-]+)?)/g;
@@ -274,7 +300,7 @@ function containsAny(haystack, needles) {
  * ['cauliflower rice'] when looking for 'rice'.
  */
 export function findMenuTerms(text, terms, safeCompounds = []) {
-  const haystack = stripPhrases(stripNegations(normalise(text)), safeCompounds);
+  const haystack = stripPhrases(stripNegations(prepare(text)), safeCompounds);
   return containsAny(haystack, terms);
 }
 
@@ -285,7 +311,7 @@ export function findMenuTerms(text, terms, safeCompounds = []) {
  * is `unknown` — and unknown must never be presented as a pass.
  */
 export function analyseCookingFat(text) {
-  const haystack = stripNegations(normalise(text));
+  const haystack = stripNegations(prepare(text));
 
   const seed = containsAny(haystack, SEED_OILS);
   const preferred = containsAny(haystack, ALL_PREFERRED_FATS);
@@ -342,7 +368,7 @@ export function analyseAllergen(text, allergenId) {
   const rules = ALLERGEN_KEYWORDS[allergenId];
   if (!rules) return { allergenId, status: 'unknown' };
 
-  const haystack = neutralise(stripNegations(normalise(text)), allergenId);
+  const haystack = neutralise(stripNegations(prepare(text)), allergenId);
 
   const obvious = containsAny(haystack, rules.obvious);
   if (obvious.length) {
@@ -429,7 +455,10 @@ export const BASE_PORTIONS = {
  * from a one-line menu description is not, and the card says so.
  */
 export const ERROR_MARGIN_BY_SOURCE = {
-  published: 5,
+  // Published numbers are right on average, but the misses skew high: about
+  // a fifth of restaurant items measure 100+ kcal above the stated figure.
+  // ±10% is honest; ±5% was flattering the label.
+  published: 10,
   estimated: 25,
   unknown: null,
 };

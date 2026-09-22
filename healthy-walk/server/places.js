@@ -19,6 +19,7 @@
 
 import { config, capabilities } from './config.js';
 import { cached } from './cache.js';
+import { record, PRICES } from './budget.js';
 import {
   walkMinutesToMeters, metersToWalkMinutes, STREET_DETOUR_FACTOR,
 } from '../shared/criteria.js';
@@ -173,8 +174,11 @@ export async function findNearbyRestaurants(criteria) {
   const raw = await cached(
     'places',
     cacheKey,
-    () =>
-      googleFetch(`${PLACES_ROOT}/places:searchNearby`, {
+    () => {
+      // Only a cache miss costs anything, so the ledger is written here
+      // rather than around the cached() call.
+      record('google', PRICES.google.nearbySearch, 'Nearby Search');
+      return googleFetch(`${PLACES_ROOT}/places:searchNearby`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +200,8 @@ export async function findNearbyRestaurants(criteria) {
             travelMode: 'WALK',
           },
         }),
-      }),
+      });
+    },
     // Restaurants don't move. Opening hours do, but that's filtered below
     // against a fresh read every time rather than against the cache.
     24 * 3600_000,
@@ -262,6 +267,7 @@ export async function photoRedirectUrl(photoName, maxPx = 800) {
     'photo',
     `${safeName}@${maxPx}`,
     async () => {
+      record('google', PRICES.google.photo, 'Place photo');
       const url = new URL(`${PLACES_ROOT}/${safeName}/media`);
       url.searchParams.set('maxHeightPx', String(maxPx));
       url.searchParams.set('skipHttpRedirect', 'true');
@@ -287,6 +293,7 @@ export async function geocodeAddress(query) {
     'geocode',
     query.toLowerCase(),
     async () => {
+      record('google', PRICES.google.geocode, 'Geocode');
       const url = new URL(GEOCODE_ROOT);
       url.searchParams.set('address', query);
       url.searchParams.set('key', config.googleKey);

@@ -136,6 +136,18 @@ export function proximityScore(walkMinutes, maxWalkMinutes) {
  * restaurant is, and how far away it is, are facts we're sure of regardless
  * of how well we read the menu.
  */
+/**
+ * Uncertainty should pull a judgement toward "don't know", not toward zero.
+ *
+ * Multiplying straight by confidence punished a half-confirmed dish as if it
+ * had actively failed, so an unverified dish lost a third of its score for
+ * criteria the diner never set. Shrinking toward 0.5 instead means low
+ * confidence moves a score toward neutral from whichever side it started.
+ */
+function shrinkToNeutral(value, confidence) {
+  return 0.5 + (value - 0.5) * confidence;
+}
+
 export function scoreDish(dish, criteria) {
   const restaurant = dish.restaurant ?? {};
   const confidence = clamp01(dish.confidence ?? 0.5);
@@ -147,24 +159,51 @@ export function scoreDish(dish, criteria) {
     proximity: proximityScore(restaurant.walkMinutes, criteria.walkMinutes),
   };
 
-  const weighted =
-    WEIGHTS.criteriaFit * components.criteriaFit * confidence +
-    WEIGHTS.reviewQuality * components.reviewQuality +
-    WEIGHTS.macroFit * components.macroFit * confidence +
-    WEIGHTS.proximity * components.proximity;
+  // Only score what was actually asked for. Carrying a criteria weight when
+  // the diner set no criteria means every dish is judged against an empty
+  // requirement and none of them can win it.
+  const asked = {
+    reviewQuality: true,
+    proximity: true,
+    criteriaFit: (dish.criteria ?? []).length > 0,
+    macroFit: Boolean(criteria.maxCalories || criteria.minProtein || criteria.maxCarbs),
+  };
+
+  // Confidence is about the dish, so it discounts the dish-specific
+  // components only. How good the restaurant is, and how far away it is, are
+  // facts we're sure of however poorly we read the menu.
+  const discounted = {
+    criteriaFit: shrinkToNeutral(components.criteriaFit, confidence),
+    macroFit: shrinkToNeutral(components.macroFit, confidence),
+    reviewQuality: components.reviewQuality,
+    proximity: components.proximity,
+  };
+
+  const activeWeight = Object.entries(WEIGHTS)
+    .filter(([key]) => asked[key])
+    .reduce((sum, [, weight]) => sum + weight, 0);
+
+  const contribution = {};
+  let weighted = 0;
+
+  for (const [key, weight] of Object.entries(WEIGHTS)) {
+    if (!asked[key]) {
+      contribution[key] = 0;
+      continue;
+    }
+    const share = (weight / activeWeight) * discounted[key];
+    contribution[key] = round2(share * 100);
+    weighted += share;
+  }
 
   return {
     score: Math.round(clamp01(weighted) * 100),
     breakdown: {
       ...components,
       confidence,
+      asked,
       weights: WEIGHTS,
-      contribution: {
-        criteriaFit: round2(WEIGHTS.criteriaFit * components.criteriaFit * confidence * 100),
-        reviewQuality: round2(WEIGHTS.reviewQuality * components.reviewQuality * 100),
-        macroFit: round2(WEIGHTS.macroFit * components.macroFit * confidence * 100),
-        proximity: round2(WEIGHTS.proximity * components.proximity * 100),
-      },
+      contribution,
     },
   };
 }

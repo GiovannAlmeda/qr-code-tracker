@@ -13,6 +13,7 @@ import { analyseRestaurant } from './menu-ai.js';
 import { analyseDish } from './analyse.js';
 import { demoDishes, DEMO_NOTICE } from './demo-data.js';
 import { rankDishes, scoreDish } from '../shared/scoring.js';
+import { checkBudget, estimateSearchCost, countSearch, status as budgetStatus } from './budget.js';
 import { describeCriteria } from '../shared/criteria.js';
 import { MACRO_DISCLAIMER, ALLERGEN_DISCLAIMER } from '../shared/nutrition.js';
 
@@ -95,6 +96,31 @@ export async function runSearch(criteria, { emit, signal }) {
     .slice()
     .sort((a, b) => (b.rating ?? 0) * Math.log10(10 + (b.reviewCount ?? 0)) - (a.rating ?? 0) * Math.log10(10 + (a.reviewCount ?? 0)))
     .slice(0, config.maxRestaurants);
+
+  // The gate. Check before spending on menus, not after — and only once the
+  // shortlist is known, so the estimate reflects this search rather than a
+  // worst case.
+  if (capabilities.menuAI) {
+    const estimate = estimateSearchCost(shortlist.length, config.model);
+    const blocked = checkBudget(estimate);
+
+    if (blocked) {
+      emit('done', {
+        count: 0,
+        dropped: [],
+        restaurantsSearched: 0,
+        elapsedMs: Date.now() - started,
+        empty: 'over_budget',
+        budgetMessage: blocked,
+        budget: budgetStatus(),
+        restaurants: shortlist,
+        disclaimers: disclaimersFor(criteria),
+        dishes: [],
+      });
+      return;
+    }
+    countSearch();
+  }
 
   emit('status', {
     stage: 'reading',
@@ -180,6 +206,7 @@ export async function runSearch(criteria, { emit, signal }) {
     restaurantsSearched: shortlist.length,
     elapsedMs: Date.now() - started,
     empty: dishes.length ? null : 'no_matching_dishes',
+    budget: budgetStatus(),
     disclaimers: disclaimersFor(criteria),
     dishes,
   });

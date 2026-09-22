@@ -55,6 +55,15 @@ const int = (value, fallback) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+/** A cap of 0 or "off" means no cap; anything else is a hard dollar ceiling. */
+const budget = (value, fallback) => {
+  const raw = (value ?? '').trim().toLowerCase();
+  if (raw === 'off' || raw === 'none' || raw === 'unlimited') return null;
+  const n = Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return n <= 0 ? null : n;
+};
+
 export const config = {
   port: int(process.env.PORT, 8787),
 
@@ -65,8 +74,15 @@ export const config = {
   // Reasoning depth per menu lookup. 'medium' reads a menu well and costs
   // noticeably less than the 'high' default; raise it if results feel thin.
   effort: process.env.HW_EFFORT?.trim() || 'medium',
-  maxRestaurants: int(process.env.HW_MAX_RESTAURANTS, 10),
+  // Six is the sweet spot: roughly 18 candidate dishes, which is more than
+  // anyone scrolls, at about half the cost of ten. Raise it if you're in a
+  // dense area and want a wider net.
+  maxRestaurants: int(process.env.HW_MAX_RESTAURANTS, 6),
   cacheHours: int(process.env.HW_CACHE_HOURS, 72),
+
+  // A hard monthly ceiling on API spend. The app refuses to start a search
+  // that would cross it rather than warning after the fact.
+  monthlyBudget: budget(process.env.HW_MONTHLY_BUDGET_USD, 25),
 
   cacheDir: path.join(ROOT, 'data', 'cache'),
   publicDir: path.join(ROOT, 'public'),

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Healthy Walk</title>
+<meta name="description" content="What should we eat — not where. Nearby dishes that fit your criteria, with macros.">
+<meta name="theme-color" content="#14563c" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131312" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Healthy Walk">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="app-bar">
+  <div class="app-bar__title">
+    <span class="app-bar__mark" aria-hidden="true">🥑</span>
+    <span>Healthy&nbsp;Walk</span>
+  </div>
+  <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch theme">
+    <span aria-hidden="true" data-theme-icon>◐</span>
+  </button>
+</header>
+
+<div class="mode-banner" id="mode-banner" hidden></div>
+
+<main id="main">
+
+  <!-- ════════════════ SEARCH ════════════════ -->
+  <section class="view" id="view-search" aria-labelledby="search-heading">
+    <h1 class="view__heading" id="search-heading">What should we eat?</h1>
+    <p class="view__sub">Not where — what. Tell it what you need and it reads the menus.</p>
+
+    <!-- Location -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">Where you are</h2>
+      </div>
+      <button class="location-pill" id="location-btn" type="button">
+        <span class="location-pill__icon" aria-hidden="true">📍</span>
+        <span class="location-pill__text" id="location-text">Use my current location</span>
+        <span class="location-pill__action" id="location-action">Locate</span>
+      </button>
+      <div class="location-fallback" id="location-fallback" hidden>
+        <label class="sr-only" for="address-input">Address or neighbourhood</label>
+        <input class="input" id="address-input" type="text" inputmode="text"
+               placeholder="Or type an address or neighbourhood" autocomplete="street-address">
+        <button class="btn btn--quiet" id="address-btn" type="button">Find</button>
+      </div>
+    </div>
+
+    <!-- Walk -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">How far you'll walk</h2>
+        <output class="field-group__value" id="walk-value" for="walk-slider">15 min</output>
+      </div>
+      <input class="slider" id="walk-slider" type="range" min="5" max="60" step="5" value="15"
+             aria-label="Maximum walking time in minutes">
+      <div class="slider__scale" aria-hidden="true">
+        <span>5 min</span><span>30</span><span>60 min</span>
+      </div>
+      <p class="field-group__hint" id="walk-hint">About 1.2 km away</p>
+    </div>
+
+    <!-- Protein -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">Protein</h2>
+        <span class="field-group__note">Any, unless you pick</span>
+      </div>
+      <div class="chip-set" id="protein-chips" role="group" aria-label="Protein"></div>
+    </div>
+
+    <!-- Diet -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">How it's prepared</h2>
+      </div>
+      <div class="chip-set" id="diet-chips" role="group" aria-label="Diet"></div>
+    </div>
+
+    <!-- Oil -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">Cooking fat</h2>
+      </div>
+      <div class="chip-set chip-set--single" id="oil-chips" role="radiogroup" aria-label="Cooking fat preference"></div>
+      <p class="field-group__hint" id="oil-hint"></p>
+    </div>
+
+    <!-- Allergens -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">Avoid completely</h2>
+      </div>
+      <div class="chip-set" id="allergen-chips" role="group" aria-label="Allergens to avoid"></div>
+      <!-- Appears the moment an allergen is picked. The owner asked for this
+           specifically, and it is the most important sentence in the app. -->
+      <div class="notice notice--warn" id="allergen-notice" hidden>
+        <span class="notice__icon" aria-hidden="true">⚠</span>
+        <p class="notice__text" id="allergen-notice-text"></p>
+      </div>
+    </div>
+
+    <!-- Numbers -->
+    <div class="field-group">
+      <div class="field-group__head">
+        <h2 class="field-group__title">Your numbers</h2>
+        <span class="field-group__note">Optional</span>
+      </div>
+      <div class="number-grid">
+        <label class="number-field">
+          <span class="number-field__label">Calories under</span>
+          <input class="input input--number" id="max-calories" type="number" inputmode="numeric"
+                 min="100" max="3000" step="50" placeholder="—">
+          <span class="number-field__unit">kcal</span>
+        </label>
+        <label class="number-field">
+          <span class="number-field__label">Protein at least</span>
+          <input class="input input--number" id="min-protein" type="number" inputmode="numeric"
+                 min="0" max="200" step="5" placeholder="—">
+          <span class="number-field__unit">g</span>
+        </label>
+        <label class="number-field">
+          <span class="number-field__label">Carbs under</span>
+          <input class="input input--number" id="max-carbs" type="number" inputmode="numeric"
+                 min="0" max="300" step="5" placeholder="—">
+          <span class="number-field__unit">g</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- The place -->
+    <details class="disclosure">
+      <summary class="disclosure__summary">The restaurant itself</summary>
+      <div class="disclosure__body">
+        <div class="field-group">
+          <div class="field-group__head">
+            <h3 class="field-group__title field-group__title--sm">Minimum Google rating</h3>
+            <output class="field-group__value" id="rating-value">4.0★</output>
+          </div>
+          <input class="slider" id="rating-slider" type="range" min="0" max="4.8" step="0.1" value="4.0"
+                 aria-label="Minimum Google rating">
+        </div>
+        <div class="field-group">
+          <div class="field-group__head">
+            <h3 class="field-group__title field-group__title--sm">Minimum reviews</h3>
+            <output class="field-group__value" id="reviews-value">25</output>
+          </div>
+          <input class="slider" id="reviews-slider" type="range" min="0" max="500" step="25" value="25"
+                 aria-label="Minimum number of Google reviews">
+          <p class="field-group__hint">Stops a 5.0 from four people topping the list.</p>
+        </div>
+        <div class="field-group">
+          <div class="field-group__head">
+            <h3 class="field-group__title field-group__title--sm">Price</h3>
+          </div>
+          <div class="chip-set" id="price-chips" role="group" aria-label="Price level"></div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="open-now" checked>
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__label">Only show places open now</span>
+        </label>
+      </div>
+    </details>
+
+    <!-- Free text -->
+    <div class="field-group">
+      <label class="field-group__head" for="notes-input">
+        <h2 class="field-group__title">Anything else</h2>
+        <span class="field-group__note">Optional</span>
+      </label>
+      <textarea class="input input--area" id="notes-input" rows="2"
+                placeholder="e.g. no nightshades, something I can eat one-handed"></textarea>
+    </div>
+
+    <div class="submit-bar">
+      <button class="btn btn--primary btn--lg" id="search-btn" type="button">
+        Find my dish
+      </button>
+      <p class="submit-bar__note" id="cost-note"></p>
+    </div>
+  </section>
+
+  <!-- ════════════════ RESULTS ════════════════ -->
+  <section class="view" id="view-results" hidden aria-labelledby="results-heading">
+    <div class="results-head">
+      <button class="btn btn--quiet btn--back" id="back-btn" type="button">
+        <span aria-hidden="true">←</span> Change criteria
+      </button>
+      <h1 class="view__heading" id="results-heading">Your dishes</h1>
+      <p class="view__sub" id="results-criteria"></p>
+    </div>
+
+    <div id="results-notices"></div>
+
+    <div class="progress" id="progress" hidden>
+      <div class="progress__bar"><div class="progress__fill" id="progress-fill"></div></div>
+      <p class="progress__text" id="progress-text">Looking around…</p>
+    </div>
+
+    <div class="dish-list" id="dish-list"></div>
+
+    <div class="empty" id="results-empty" hidden></div>
+
+    <details class="disclosure disclosure--quiet" id="dropped-disclosure" hidden>
+      <summary class="disclosure__summary" id="dropped-summary"></summary>
+      <ul class="dropped-list" id="dropped-list"></ul>
+    </details>
+  </section>
+
+  <!-- ════════════════ SAVED ════════════════ -->
+  <section class="view" id="view-saved" hidden aria-labelledby="saved-heading">
+    <h1 class="view__heading" id="saved-heading">Saved for later</h1>
+    <p class="view__sub">Dishes you kept. They stay here across your devices.</p>
+    <div class="dish-list" id="saved-list"></div>
+    <div class="empty" id="saved-empty" hidden>
+      <p class="empty__title">Nothing saved yet</p>
+      <p class="empty__text">Tap <strong>Save for later</strong> on any dish and it'll wait here.</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tab-bar" aria-label="Main">
+  <button class="tab" data-view="search" aria-current="page" type="button">
+    <span class="tab__icon" aria-hidden="true">🔎</span><span class="tab__label">Search</span>
+  </button>
+  <button class="tab" data-view="results" type="button">
+    <span class="tab__icon" aria-hidden="true">🥗</span><span class="tab__label">Dishes</span>
+  </button>
+  <button class="tab" data-view="saved" type="button">
+    <span class="tab__icon" aria-hidden="true">🔖</span>
+    <span class="tab__label">Saved</span>
+    <span class="tab__badge" id="saved-count" hidden>0</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- Google requires visible attribution wherever Places data is shown. -->
+<p class="attribution" id="attribution" hidden>Place data and photos from Google</p>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

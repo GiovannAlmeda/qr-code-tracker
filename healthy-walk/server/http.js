@@ -136,7 +136,7 @@ function serveStatic(rootDir, urlPath, res) {
  * this app has a dozen endpoints, not a hundred, and a regex router would be
  * more machinery than the problem deserves.
  */
-export function createApp({ staticDir, routes }) {
+export function createApp({ staticDir, routes, mounts = [] }) {
   return createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     const key = `${req.method} ${url.pathname}`;
@@ -146,6 +146,16 @@ export function createApp({ staticDir, routes }) {
       if (handler) {
         await handler(req, res, url);
         return;
+      }
+
+      // Extra roots, so the browser can import the same `shared/` modules the
+      // server does instead of a duplicated copy under public/.
+      if (req.method === 'GET') {
+        for (const mount of mounts) {
+          if (!url.pathname.startsWith(mount.prefix)) continue;
+          const rest = url.pathname.slice(mount.prefix.length);
+          if (serveStatic(mount.dir, `/${rest}`, res)) return;
+        }
       }
 
       if (req.method === 'GET' && serveStatic(staticDir, url.pathname, res)) return;

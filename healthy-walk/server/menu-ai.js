@@ -15,6 +15,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config, capabilities } from './config.js';
 import { cached } from './cache.js';
+import { record, priceAnthropicUsage } from './budget.js';
 import {
   PROTEINS, DIETS, ALLERGENS, describeCriteria, OIL_PREFERENCE_BY_ID,
 } from '../shared/criteria.js';
@@ -227,25 +228,46 @@ function buildUserPrompt(restaurant, criteria, maxDishes) {
 
 /**
  * Web search and web fetch both run on Anthropic's side, so a single request
- * covers "go and look it up" without a tool loop of our own. `web_fetch` can
- * only retrieve URLs already present in the conversation, which is why the
- * restaurant's website goes into the prompt above.
+ * covers "go and look it up" without a tool loop of our own.
+ *
+ * `web_fetch` is the workhorse here and it's the cheap one — it costs only
+ * the tokens of what it reads, while each search is billed separately. It
+ * will only retrieve URLs already present in the conversation, which is
+ * exactly why the restaurant's own website is written into the user prompt
+ * verbatim: that one line is what makes fetching the real menu legal.
  */
-function buildTools() {
+const TOOL_GENERATIONS = ['20260318', '20260209'];
+
+/**
+ * Which generation this account actually accepts. Newest first; if the API
+ * rejects it we drop back once and remember, so only the first search of a
+ * process ever pays for the discovery.
+ */
+let toolGeneration = TOOL_GENERATIONS[0];
+
+function buildTools(generation = toolGeneration) {
   return [
     {
-      type: 'web_search_20260209',
+      type: `web_search_${generation}`,
       name: 'web_search',
       max_uses: 6,
     },
     {
-      type: 'web_fetch_20260209',
+      type: `web_fetch_${generation}`,
       name: 'web_fetch',
       max_uses: 4,
+      // Menu pages carry a lot of boilerplate. This is enough for the menu
+      // and not enough for the whole site.
       max_content_tokens: 30_000,
     },
     REPORT_DISHES_TOOL,
   ];
+}
+
+/** A 400 that names a tool type means this account is on an older generation. */
+function isToolGenerationError(err) {
+  if (err?.status !== 400) return false;
+  return /web_search_|web_fetch_|tool type|unsupported/i.test(String(err.message ?? ''));
 }
 
 function extractToolInput(message) {
@@ -281,21 +303,21 @@ async function analyseRestaurantUncached(restaurant, criteria, maxDishes, signal
       },
     ],
     output_config: { effort: config.effort },
-    tools: buildTools(),
-    // Deliberately not forced: forcing the tool would stop the model from
-    // searching first, which is the entire point of the call.
+    // Deliberately not forced on this first turn: a forced client tool
+    // starves the server tools, and the model would answer from the
+    // restaurant's name instead of its menu.
     tool_choice: { type: 'auto' },
     messages,
   };
 
-  let message = await streamMessage(request, signal);
+  let message = await sendWithToolFallback(request, signal);
 
   // `pause_turn` means the server tool run was cut short mid-flight. Hand
   // the partial turn back and let it carry on.
   let continuations = 0;
   while (message.stop_reason === 'pause_turn' && continuations < 3) {
     messages.push({ role: 'assistant', content: message.content });
-    message = await streamMessage({ ...request, messages }, signal);
+    message = await streamMessage({ ...request, tools: buildTools(), messages }, signal);
     continuations += 1;
   }
 
@@ -305,14 +327,31 @@ async function analyseRestaurantUncached(restaurant, criteria, maxDishes, signal
 
   let input = extractToolInput(message);
 
-  // Searched, then answered in prose instead of calling the tool. One nudge.
+  // Searched, then answered in prose instead of calling the tool.
+  //
+  // Now — and only now — it's safe to force the call. Forcing it on the
+  // first request would have been the worst possible move: the model can't
+  // reach a server tool while a client tool is forced, so it would have
+  // skipped the menu entirely and invented dishes from the restaurant's
+  // name. By this turn the menu is already in context, so forcing only
+  // converts what it found into the schema.
   if (!input && message.stop_reason === 'end_turn') {
     messages.push({ role: 'assistant', content: message.content });
     messages.push({
       role: 'user',
-      content: 'Now call report_dishes with what you found. If you could not find the real menu, call it with menuFound=false and an empty dishes array.',
+      content:
+        'Now call report_dishes with what you found. If you could not find the ' +
+        'real menu, call it with menuFound=false and an empty dishes array.',
     });
-    message = await streamMessage({ ...request, messages }, signal);
+    message = await streamMessage(
+      {
+        ...request,
+        tools: buildTools(),
+        messages,
+        tool_choice: { type: 'tool', name: 'report_dishes' },
+      },
+      signal,
+    );
     input = extractToolInput(message);
   }
 
@@ -332,7 +371,30 @@ async function analyseRestaurantUncached(restaurant, criteria, maxDishes, signal
 /** Streaming keeps a long web-search turn from tripping the request timeout. */
 async function streamMessage(request, signal) {
   const stream = anthropic().messages.stream(request, { signal });
-  return stream.finalMessage();
+  const message = await stream.finalMessage();
+
+  // Bill every turn, including the ones that end without an answer — they
+  // cost the same whether or not they were useful.
+  record('anthropic', priceAnthropicUsage(message.usage, request.model), 'Menu lookup');
+
+  return message;
+}
+
+/**
+ * Send, and if the account is on an older server-tool generation, step back
+ * one and remember for the rest of the process.
+ */
+async function sendWithToolFallback(request, signal) {
+  try {
+    return await streamMessage({ ...request, tools: buildTools() }, signal);
+  } catch (err) {
+    const next = TOOL_GENERATIONS[TOOL_GENERATIONS.indexOf(toolGeneration) + 1];
+    if (!isToolGenerationError(err) || !next) throw err;
+
+    console.warn(`[menu-ai] server tools ${toolGeneration} rejected, falling back to ${next}`);
+    toolGeneration = next;
+    return streamMessage({ ...request, tools: buildTools() }, signal);
+  }
 }
 
 /** Map the model's answer onto the shape the rest of the app speaks. */

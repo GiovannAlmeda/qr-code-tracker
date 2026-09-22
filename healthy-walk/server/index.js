@@ -6,12 +6,14 @@
  * their menus, and hands back the specific dishes that fit.
  */
 
-import { config, capabilities, modeDescription } from './config.js';
+import path from 'node:path';
+import { config, capabilities, modeDescription, ROOT } from './config.js';
 import { createApp, json, readJsonBody, openEventStream } from './http.js';
 import { runSearch } from './search.js';
 import { geocodeAddress, photoRedirectUrl } from './places.js';
 import { listSaved, saveDish, removeSaved } from './saved.js';
 import { cacheStats, cacheClear } from './cache.js';
+import { status as budgetStatus, resetLedger, estimateSearchCost } from './budget.js';
 import {
   PROTEINS, ALLERGENS, DIETS, OIL_PREFERENCES, PRICE_LEVELS,
   WALK_MINUTE_OPTIONS, defaultCriteria, sanitizeCriteria,
@@ -29,6 +31,10 @@ const routes = {
       capabilities: { places: capabilities.places, menuAI: capabilities.menuAI },
       model: capabilities.menuAI ? config.model : null,
       maxRestaurants: config.maxRestaurants,
+      budget: budgetStatus(),
+      estimatedSearchCost: capabilities.menuAI
+        ? estimateSearchCost(config.maxRestaurants, config.model)
+        : 0,
       disclaimers: { macros: MACRO_DISCLAIMER, allergens: ALLERGEN_DISCLAIMER },
       vocab: {
         proteins: PROTEINS,
@@ -121,6 +127,14 @@ const routes = {
     json(res, 200, { removed: id ? removeSaved(id) : false });
   },
 
+  'GET /api/budget': (req, res) => json(res, 200, budgetStatus()),
+
+  /** Clears the ledger. Does not refund anything — it just resets the count. */
+  'DELETE /api/budget': (req, res) => {
+    resetLedger();
+    json(res, 200, budgetStatus());
+  },
+
   'GET /api/cache': (req, res) => json(res, 200, cacheStats()),
 
   'DELETE /api/cache': (req, res) => {
@@ -129,7 +143,11 @@ const routes = {
   },
 };
 
-const app = createApp({ staticDir: config.publicDir, routes });
+const app = createApp({
+  staticDir: config.publicDir,
+  routes,
+  mounts: [{ prefix: '/shared/', dir: path.join(ROOT, 'shared') }],
+});
 
 app.listen(config.port, () => {
   const url = `http://localhost:${config.port}`;
