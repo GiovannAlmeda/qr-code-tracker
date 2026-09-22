@@ -259,6 +259,15 @@ input[type=range]::-moz-range-thumb {
 .chip[aria-pressed="true"] { background: var(--green-soft); border-color: var(--green-line); color: var(--green); font-weight: 600; }
 .chip.danger[aria-pressed="true"] { background: var(--no-bg); border-color: color-mix(in srgb, var(--no) 35%, transparent); color: var(--no); }
 
+.chip.place { padding-right: 6px; }
+.chip.place .x {
+  display: inline-grid; place-items: center;
+  width: 22px; height: 22px; margin-left: 2px;
+  border: none; border-radius: var(--pill); background: none;
+  color: var(--ink-3); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.chip.place .x:hover { background: var(--sunken); color: var(--ink); }
+
 /* ── Notices ──────────────────────────────────────────────────────── */
 
 .note {
@@ -465,7 +474,8 @@ input[type=range]::-moz-range-thumb {
         <input class="fld" id="place" type="text" placeholder="Neighbourhood, city" autocomplete="address-level2">
         <button class="btn" id="locate" type="button" title="Use my location">📍</button>
       </div>
-      <p class="hint" id="place-hint">The more specific, the better the suggestions.</p>
+      <div class="chips" id="recent" style="margin-top:8px"></div>
+      <p class="hint" id="place-hint">Typed once, remembered from then on.</p>
     </div>
 
     <div class="sec">
@@ -638,6 +648,7 @@ const state = {
   },
   dishes: [],
   saved: [],
+  places: [],
   busy: false,
   ctl: null,
   sample: null,
@@ -1002,6 +1013,8 @@ async function runSearch() {
   if (state.busy) return;
   if (!state.sample) { toast('Claude is not available in this view.'); return; }
 
+  if (c.place) remember(c.place);
+
   state.busy = true;
   state.ctl = new AbortController();
   $('find').disabled = true;
@@ -1322,6 +1335,57 @@ function persist() {
   write('criteria', JSON.stringify({ ...state.criteria, coords: null }));
 }
 
+/* ── Remembered places ───────────────────────────────────────────────
+   The point of the whole feature: type somewhere once, tap it forever. */
+
+function remember(place) {
+  const clean = String(place).trim();
+  if (!clean) return;
+  state.places = [clean, ...state.places.filter((p) => p.toLowerCase() !== clean.toLowerCase())].slice(0, 5);
+  write('places', JSON.stringify(state.places));
+  renderPlaces();
+}
+
+function forget(place) {
+  state.places = state.places.filter((p) => p !== place);
+  write('places', JSON.stringify(state.places));
+  renderPlaces();
+}
+
+function setPlace(place) {
+  state.criteria.place = place;
+  $('place').value = place;
+  persist();
+  remember(place);
+}
+
+function renderPlaces() {
+  const host = $('recent');
+  host.replaceChildren();
+  host.hidden = state.places.length === 0;
+
+  for (const place of state.places) {
+    const chip = el('button', 'chip place');
+    chip.type = 'button';
+    chip.setAttribute('aria-pressed', String(state.criteria.place === place));
+    chip.append(document.createTextNode('📍 ' + place));
+
+    const x = el('button', 'x', '×');
+    x.type = 'button';
+    x.title = 'Forget ' + place;
+    x.setAttribute('aria-label', 'Forget ' + place);
+    x.addEventListener('click', (e) => { e.stopPropagation(); forget(place); });
+
+    chip.addEventListener('click', () => {
+      setPlace(place);
+      [...host.children].forEach((c, i) => c.setAttribute('aria-pressed', String(state.places[i] === place)));
+    });
+
+    chip.append(x);
+    host.append(chip);
+  }
+}
+
 function restore() {
   try {
     const saved = JSON.parse(read('criteria') ?? 'null');
@@ -1330,6 +1394,10 @@ function restore() {
   try {
     const s = JSON.parse(read('saved') ?? '[]');
     if (Array.isArray(s)) state.saved = s;
+  } catch {}
+  try {
+    const p = JSON.parse(read('places') ?? '[]');
+    if (Array.isArray(p)) state.places = p.filter((x) => typeof x === 'string').slice(0, 5);
   } catch {}
   const t = read('theme');
   if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
@@ -1358,9 +1426,14 @@ chipSet($('c-oil'), OILS, { on: (i) => state.criteria.oil === i.id, hit: (i) => 
 allergyNote();
 oilHint();
 syncForm();
+if (state.criteria.place && !state.places.includes(state.criteria.place)) state.places.unshift(state.criteria.place);
+renderPlaces();
 renderSaved();
 
-$('place').addEventListener('change', (e) => { state.criteria.place = e.target.value.trim(); persist(); });
+// `input`, not `change`: capture every keystroke so a place is never lost
+// to tapping straight from the field to the button.
+$('place').addEventListener('input', (e) => { state.criteria.place = e.target.value.trim(); persist(); });
+$('place').addEventListener('change', (e) => { const v = e.target.value.trim(); if (v) remember(v); });
 $('walk').addEventListener('input', (e) => { state.criteria.walk = Number(e.target.value); $('walk-out').textContent = state.criteria.walk + ' min'; persist(); });
 for (const [id, key] of [['kcal', 'kcal'], ['prot', 'prot'], ['carb', 'carb']]) {
   $(id).addEventListener('change', (e) => { const v = e.target.value.trim(); state.criteria[key] = v === '' ? null : Number(v); persist(); });
@@ -1368,17 +1441,70 @@ for (const [id, key] of [['kcal', 'kcal'], ['prot', 'prot'], ['carb', 'carb']]) 
 $('notes').addEventListener('change', (e) => { state.criteria.notes = e.target.value; persist(); });
 $('find').addEventListener('click', runSearch);
 
-$('locate').addEventListener('click', () => {
-  if (!navigator.geolocation) { toast('No location support here — type where you are.'); return; }
-  $('place-hint').textContent = 'Finding you…';
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      state.criteria.coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      $('place-hint').textContent = 'Got your position. A neighbourhood name still helps — add one if you can.';
-    },
-    () => { $('place-hint').textContent = 'Location blocked — type your neighbourhood instead.'; $('place').focus(); },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-  );
+/**
+ * "Use my location".
+ *
+ * This page runs inside the Claude viewer's iframe, and that frame is not
+ * granted the browser's geolocation permission — so on most devices the
+ * request is refused by policy before the phone ever asks you. That is not
+ * something the page can talk its way out of, so it says exactly what
+ * happened instead of a vague "blocked", and leans on remembered places,
+ * which solve the actual problem: not typing an address twice.
+ *
+ * Where it DOES work, the coordinates alone are enough to search with — and
+ * Claude turns them into a neighbourhood name, which gets remembered like
+ * any other, so the button is needed exactly once.
+ */
+$('locate').addEventListener('click', async () => {
+  const hint = $('place-hint');
+
+  if (!window.isSecureContext) { hint.textContent = 'Location needs a secure connection. Type where you are instead — it gets remembered.'; return; }
+  if (!navigator.geolocation) { hint.textContent = 'This browser has no location support. Type where you are — it gets remembered.'; return; }
+
+  hint.textContent = 'Finding you…';
+
+  let pos;
+  try {
+    pos = await new Promise((ok, fail) =>
+      navigator.geolocation.getCurrentPosition(ok, fail, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }));
+  } catch (err) {
+    const msg = String(err?.message ?? '');
+    if (/permissions policy|feature policy|disabled in this document/i.test(msg)) {
+      hint.textContent = "Claude runs this page in a sandbox that doesn't hand out your location. Type your neighbourhood once — it's saved below and one tap from then on.";
+    } else if (err?.code === 1) {
+      hint.textContent = 'Location is turned off for this site. Allow it in your browser settings, or type where you are — it gets remembered.';
+    } else if (err?.code === 3) {
+      hint.textContent = 'Location timed out. Try again outdoors, or just type where you are.';
+    } else {
+      hint.textContent = "Couldn't get a fix. Type where you are — it gets remembered.";
+    }
+    $('place').focus();
+    return;
+  }
+
+  const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  state.criteria.coords = coords;
+  hint.textContent = 'Got you. Naming the neighbourhood…';
+
+  // The page can't reach a geocoder, but Claude can read coordinates.
+  // Naming the spot is what makes it savable — and searchable next time
+  // without the button at all.
+  try {
+    const named = await state.sample?.json(
+      'What neighbourhood and city are these coordinates in? ' +
+      'Latitude ' + coords.lat.toFixed(5) + ', longitude ' + coords.lng.toFixed(5) + '. ' +
+      'Reply with ONLY {"place":"Neighbourhood, City"} — the everyday name a local would use. ' +
+      'If you cannot place it confidently, reply {"place":null}.',
+      { modelTier: 'quick', cache: { gcTime: 86400000 } },
+    );
+    if (named?.place) {
+      setPlace(String(named.place));
+      hint.textContent = 'Found you in ' + named.place + '. Saved — tap it next time.';
+      return;
+    }
+  } catch { /* coordinates alone still search fine */ }
+
+  hint.textContent = 'Got your position. Searching from your coordinates.';
 });
 
 for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => show(t.dataset.v));
