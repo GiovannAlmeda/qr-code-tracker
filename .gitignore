@@ -1,3 +1,8 @@
 node_modules/
    .env
    .DS_Store
+
+# Healthy Walk
+healthy-walk/.env
+healthy-walk/data/cache/
+healthy-walk/node_modules/
