@@ -1,0 +1,1402 @@
+<title>Healthy Walk</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Healthy Walk — "where should we eat" becomes "what should we eat"
+
+   Fraunces for the voice, Plex Sans for the work. Evergreen on warm
+   paper: a health app that has been outside, not a delivery app.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  --paper:      #f6f5f0;
+  --card:       #ffffff;
+  --sunken:     #eceae1;
+  --line:       #e0ded2;
+  --line-firm:  #c9c6b6;
+
+  --ink:        #191b14;
+  --ink-2:      #56584a;
+  --ink-3:      #84867a;
+  --on-green:   #ffffff;
+
+  --green:      #1d5c3f;
+  --green-deep: #14462f;
+  --green-soft: #e4efe8;
+  --green-line: #b6d4c3;
+
+  --yes:        #1a6b45;
+  --yes-bg:     #e4efe8;
+  --maybe:      #8a5200;
+  --maybe-bg:   #faeedb;
+  --dunno:      #63655a;
+  --dunno-bg:   #eceae1;
+  --no:         #a3231c;
+  --no-bg:      #fae9e7;
+
+  /* Macro series — checked for colour-vision deficiency and contrast
+     in both themes. Protein leads; it's the one being maximised. */
+  --protein:    #1baf7a;
+  --carbs:      #eb6834;
+  --fat:        #2a78d6;
+
+  --mono-from:  #1d5c3f;
+  --mono-to:    #35805c;
+  --mono-ink:   #ffffff;
+
+  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --r-sm: 9px;
+  --r: 15px;
+  --r-lg: 22px;
+  --pill: 999px;
+
+  --shade: 0 1px 2px rgb(25 27 20 / .05);
+  --lift: 0 2px 10px rgb(25 27 20 / .07), 0 1px 3px rgb(25 27 20 / .05);
+  --float: 0 10px 34px rgb(25 27 20 / .14);
+
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #12140f;
+    --card:       #1d1f19;
+    --sunken:     #282a22;
+    --line:       #33352b;
+    --line-firm:  #474939;
+
+    --ink:        #f3f2ea;
+    --ink-2:      #b6b8a8;
+    --ink-3:      #87897c;
+    --on-green:   #08190f;
+
+    --green:      #5cc08e;
+    --green-deep: #74cea1;
+    --green-soft: #17362600;
+    --green-line: #255440;
+
+    --yes:        #6cc899;
+    --yes-bg:     #16362699;
+    --maybe:      #e0a44c;
+    --maybe-bg:   #3a2c1199;
+    --dunno:      #9a9c8e;
+    --dunno-bg:   #282a22;
+    --no:         #f08a82;
+    --no-bg:      #3a1b1899;
+
+    --protein:    #199e70;
+    --carbs:      #d95926;
+    --fat:        #3987e5;
+
+    --mono-from:  #253529;
+    --mono-to:    #1a261d;
+    --mono-ink:   #5cc08e;
+
+    --shade: 0 1px 2px rgb(0 0 0 / .3);
+    --lift: 0 2px 10px rgb(0 0 0 / .4);
+    --float: 0 10px 34px rgb(0 0 0 / .55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #12140f;
+  --card:       #1d1f19;
+  --sunken:     #282a22;
+  --line:       #33352b;
+  --line-firm:  #474939;
+
+  --ink:        #f3f2ea;
+  --ink-2:      #b6b8a8;
+  --ink-3:      #87897c;
+  --on-green:   #08190f;
+
+  --green:      #5cc08e;
+  --green-deep: #74cea1;
+  --green-soft: #17362600;
+  --green-line: #255440;
+
+  --yes:        #6cc899;
+  --yes-bg:     #16362699;
+  --maybe:      #e0a44c;
+  --maybe-bg:   #3a2c1199;
+  --dunno:      #9a9c8e;
+  --dunno-bg:   #282a22;
+  --no:         #f08a82;
+  --no-bg:      #3a1b1899;
+
+  --protein:    #199e70;
+  --carbs:      #d95926;
+  --fat:        #3987e5;
+
+  --mono-from:  #253529;
+  --mono-to:    #1a261d;
+  --mono-ink:   #5cc08e;
+
+  --shade: 0 1px 2px rgb(0 0 0 / .3);
+  --lift: 0 2px 10px rgb(0 0 0 / .4);
+  --float: 0 10px 34px rgb(0 0 0 / .55);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 600; text-wrap: balance; }
+p { margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: var(--r-sm); }
+
+.wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 0 96px; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.brand svg { width: 22px; height: 22px; flex: none; }
+.ghost {
+  min-width: var(--tap); height: var(--tap);
+  display: grid; place-items: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-2); border-radius: var(--pill); font-size: 17px;
+}
+.ghost:hover { background: var(--sunken); }
+
+/* ── Hero ─────────────────────────────────────────────────────────── */
+
+.hero { padding-block: 28px 8px; }
+.hero h1 {
+  font-size: clamp(30px, 8.5vw, 42px);
+  line-height: 1.04; letter-spacing: -.025em;
+}
+.hero h1 em { font-style: italic; color: var(--green); }
+.hero p { margin-top: 10px; color: var(--ink-2); font-size: 15.5px; max-width: 46ch; }
+
+/* ── Sections ─────────────────────────────────────────────────────── */
+
+.sec { margin-top: 26px; }
+.sec-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.sec-hd h2 { font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.sec-val { font-size: 13px; font-weight: 600; color: var(--green); font-variant-numeric: tabular-nums; }
+.hint { margin-top: 8px; font-size: 13px; color: var(--ink-3); }
+
+/* ── Fields ───────────────────────────────────────────────────────── */
+
+.fld {
+  width: 100%; min-height: var(--tap); padding: 11px 13px;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+}
+.fld::placeholder { color: var(--ink-3); }
+.fld:focus { border-color: var(--green); outline-offset: 0; }
+textarea.fld { resize: vertical; min-height: 62px; }
+
+.row { display: flex; gap: 8px; }
+.row .fld { flex: 1; min-width: 0; }
+
+.nums { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .nums { grid-template-columns: repeat(3, 1fr); } }
+.num { position: relative; display: block; }
+.num span.lab { display: block; margin-bottom: 4px; font-size: 12.5px; color: var(--ink-2); }
+.num .fld { text-align: right; padding-right: 38px; font-variant-numeric: tabular-nums; }
+.num span.unit { position: absolute; right: 12px; bottom: 12px; font-size: 12.5px; color: var(--ink-3); pointer-events: none; }
+
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: var(--tap); background: none; cursor: pointer; margin: 0;
+}
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: var(--pill); background: var(--sunken); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: var(--pill); background: var(--sunken); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; margin-top: -10px; border-radius: 50%;
+  background: var(--green); border: 3px solid var(--card); box-shadow: var(--lift);
+}
+input[type=range]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--green); border: 3px solid var(--card); box-shadow: var(--lift);
+}
+.scale { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); margin-top: -6px; }
+
+/* ── Chips ────────────────────────────────────────────────────────── */
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  min-height: 38px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--pill);
+  font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.chip:hover { border-color: var(--line-firm); }
+.chip[aria-pressed="true"] { background: var(--green-soft); border-color: var(--green-line); color: var(--green); font-weight: 600; }
+.chip.danger[aria-pressed="true"] { background: var(--no-bg); border-color: color-mix(in srgb, var(--no) 35%, transparent); color: var(--no); }
+
+/* ── Notices ──────────────────────────────────────────────────────── */
+
+.note {
+  display: flex; gap: 10px; margin-top: 12px;
+  padding: 11px 13px; border-radius: var(--r-sm);
+  font-size: 13px; line-height: 1.5;
+}
+.note.warn { background: var(--maybe-bg); color: var(--maybe); }
+.note.info { background: var(--sunken); color: var(--ink-2); }
+.note b { font-weight: 600; }
+.note .ic { flex: none; }
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+
+.btn {
+  min-height: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 11px 16px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card); font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+  text-decoration: none; color: inherit;
+}
+.btn:hover { background: var(--sunken); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.go { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.btn.go:hover { background: var(--green-deep); border-color: var(--green-deep); }
+.btn.big { width: 100%; min-height: 54px; font-size: 16px; border-radius: var(--r); font-family: var(--display); font-weight: 600; letter-spacing: .01em; }
+
+.submit { margin-top: 30px; }
+.submit .cap { margin-top: 10px; text-align: center; font-size: 12px; color: var(--ink-3); }
+
+/* ── Progress ─────────────────────────────────────────────────────── */
+
+.prog { margin: 18px 0; }
+.bar { height: 6px; border-radius: var(--pill); background: var(--sunken); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 30%; border-radius: var(--pill); background: var(--green); animation: slide 1.5s ease-in-out infinite; }
+@keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+.prog p { margin-top: 9px; font-size: 13px; color: var(--ink-2); }
+
+/* ── Dish cards ───────────────────────────────────────────────────── */
+
+.list { display: grid; gap: 14px; margin-top: 18px; }
+
+.dish {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--lift);
+}
+
+.dish .head {
+  position: relative; height: 84px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--mono-from), var(--mono-to));
+  color: var(--mono-ink);
+  font-family: var(--display); font-size: 27px; font-weight: 700; letter-spacing: .03em;
+}
+.rank {
+  position: absolute; top: 11px; left: 11px;
+  padding: 3px 10px; border-radius: var(--pill);
+  background: var(--card); color: var(--green);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+}
+.score {
+  position: absolute; top: 11px; right: 11px;
+  display: flex; align-items: baseline; gap: 1px;
+  padding: 3px 11px; border-radius: var(--pill);
+  background: var(--card); box-shadow: var(--shade);
+  font-variant-numeric: tabular-nums;
+}
+.score b { font-size: 16px; font-weight: 700; color: var(--green); }
+.score i { font-size: 10.5px; font-style: normal; color: var(--ink-3); }
+
+.body { padding: 15px; }
+.dish h3 { font-size: 19px; line-height: 1.22; letter-spacing: -.012em; }
+.where { margin-top: 3px; font-size: 13.5px; color: var(--ink-2); }
+.where b { color: var(--ink); font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 7px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.desc { margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: var(--pill);
+  font-size: 11.5px; font-weight: 600; border: 1px solid transparent;
+}
+.tag.yes { background: var(--yes-bg); color: var(--yes); border-color: color-mix(in srgb, var(--yes) 25%, transparent); }
+.tag.maybe { background: var(--maybe-bg); color: var(--maybe); border-color: color-mix(in srgb, var(--maybe) 25%, transparent); }
+.tag.dunno { background: var(--dunno-bg); color: var(--dunno); border-color: var(--line); }
+
+/* ── The macro chart — the thing this app is for ─────────────────── */
+
+.macros { margin-top: 13px; padding: 12px 14px 14px; background: var(--sunken); border-radius: var(--r); }
+.mhd { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+.kcal { display: flex; align-items: baseline; gap: 4px; }
+.kcal b { font-family: var(--display); font-size: 25px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kcal span { font-size: 12.5px; color: var(--ink-2); }
+.src { font-size: 11.5px; color: var(--ink-3); text-align: right; max-width: 15ch; }
+.src.pub { color: var(--yes); font-weight: 600; }
+
+/* 2px gaps let the surface through between segments — cleaner than
+   borders at 14px tall. */
+.mbar { display: flex; gap: 2px; height: 14px; }
+.mbar i { display: block; height: 100%; min-width: 3px; }
+.mbar i:first-child { border-radius: var(--pill) 0 0 var(--pill); }
+.mbar i:last-child { border-radius: 0 var(--pill) var(--pill) 0; }
+.mbar i.p { background: var(--protein); }
+.mbar i.c { background: var(--carbs); }
+.mbar i.f { background: var(--fat); }
+
+/* Direct labels always visible: the green sits under 3:1 on the light
+   surface, so the numbers carry identity, not the colour alone. */
+.mlegend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 11px; }
+.mlegend .lab { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-2); }
+.sw { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.sw.p { background: var(--protein); } .sw.c { background: var(--carbs); } .sw.f { background: var(--fat); }
+.mlegend .g { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.mlegend .pc { font-size: 11px; color: var(--ink-3); }
+.mnone { font-size: 13px; color: var(--ink-3); text-align: center; padding: 6px 0; }
+
+/* ── Per-card allergen line ───────────────────────────────────────── */
+
+.warn {
+  display: flex; gap: 7px; margin-top: 11px;
+  padding: 8px 11px; background: var(--maybe-bg); color: var(--maybe);
+  border-radius: var(--r-sm); font-size: 11.5px; line-height: 1.45;
+}
+
+/* ── Card actions ─────────────────────────────────────────────────── */
+
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 13px; }
+.acts .btn { width: 100%; padding-inline: 8px; font-size: 13px; }
+.save[aria-pressed="true"] { background: var(--green-soft); border-color: var(--green-line); color: var(--green); }
+
+/* ── Empty / misc ─────────────────────────────────────────────────── */
+
+.empty {
+  margin-top: 22px; padding: 30px 20px; text-align: center;
+  background: var(--card); border: 1px dashed var(--line-firm); border-radius: var(--r-lg);
+}
+.empty h3 { font-size: 17px; }
+.empty p { margin-top: 7px; color: var(--ink-2); font-size: 13.5px; }
+
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: color-mix(in srgb, var(--card) 93%, transparent);
+  backdrop-filter: blur(10px); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tab {
+  position: relative; min-height: 58px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-3); font-size: 11px; font-weight: 600;
+}
+.tab svg { width: 20px; height: 20px; }
+.tab[aria-current="page"] { color: var(--green); }
+.badge {
+  position: absolute; top: 7px; left: 50%; margin-left: 7px;
+  min-width: 17px; padding: 0 5px; border-radius: var(--pill);
+  background: var(--green); color: var(--on-green);
+  font-size: 10px; line-height: 17px; text-align: center;
+}
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px)); z-index: 40;
+  max-width: calc(100% - 32px);
+  padding: 10px 18px; border-radius: var(--pill);
+  background: var(--ink); color: var(--paper);
+  font-size: 13px; font-weight: 500; box-shadow: var(--float);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .bar i { width: 100%; margin-left: 0; }
+}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M17 4c0 5.2-3.6 8.8-8.4 8.8-.8 0-1.5-.1-2.1-.3.4-4.8 4.1-8.1 8.8-8.5.7 0 1.3 0 1.7 0z" fill="var(--green)"/>
+      <path d="M6.6 12.6c3.1-.7 5.9-2.9 7.7-6.1" stroke="var(--paper)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="M7 18.5h2.6M12 18.5h2.6M17 18.5h2" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    Healthy Walk
+  </div>
+  <button class="ghost" id="theme" type="button" aria-label="Switch theme">◐</button>
+</header>
+
+<main class="wrap">
+
+  <!-- ══════════ SEARCH ══════════ -->
+  <section id="v-search">
+    <div class="hero">
+      <h1>What should we <em>eat?</em></h1>
+      <p>Not where — what. Set what you need, and get back specific dishes rather than a list of restaurants.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Where you are</h2></div>
+      <div class="row">
+        <input class="fld" id="place" type="text" placeholder="Neighbourhood, city" autocomplete="address-level2">
+        <button class="btn" id="locate" type="button" title="Use my location">📍</button>
+      </div>
+      <p class="hint" id="place-hint">The more specific, the better the suggestions.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>How far you'll walk</h2><output class="sec-val" id="walk-out" for="walk">15 min</output></div>
+      <input type="range" id="walk" min="5" max="45" step="5" value="15" aria-label="Maximum walking time in minutes">
+      <div class="scale" aria-hidden="true"><span>5 min</span><span>25</span><span>45 min</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Protein</h2><span class="hint" style="margin:0">Any, unless you pick</span></div>
+      <div class="chips" id="c-protein" role="group" aria-label="Protein"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>How it's prepared</h2></div>
+      <div class="chips" id="c-diet" role="group" aria-label="Diet"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Cooking fat</h2></div>
+      <div class="chips" id="c-oil" role="group" aria-label="Cooking fat preference"></div>
+      <p class="hint" id="oil-hint"></p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Avoid completely</h2></div>
+      <div class="chips danger" id="c-allergen" role="group" aria-label="Allergens to avoid"></div>
+      <div class="note warn" id="allergy-note" hidden>
+        <span class="ic" aria-hidden="true">⚠</span>
+        <p id="allergy-note-text"></p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Your numbers</h2><span class="hint" style="margin:0">Optional</span></div>
+      <div class="nums">
+        <label class="num"><span class="lab">Calories under</span><input class="fld" id="kcal" type="number" inputmode="numeric" min="100" max="3000" step="50" placeholder="—"><span class="unit">kcal</span></label>
+        <label class="num"><span class="lab">Protein at least</span><input class="fld" id="prot" type="number" inputmode="numeric" min="0" max="200" step="5" placeholder="—"><span class="unit">g</span></label>
+        <label class="num"><span class="lab">Carbs under</span><input class="fld" id="carb" type="number" inputmode="numeric" min="0" max="300" step="5" placeholder="—"><span class="unit">g</span></label>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><h2>Anything else</h2><span class="hint" style="margin:0">Optional</span></div>
+      <textarea class="fld" id="notes" rows="2" placeholder="e.g. no nightshades, somewhere I can sit outside"></textarea>
+    </div>
+
+    <div class="submit">
+      <button class="btn go big" id="find" type="button">Find my dish</button>
+      <p class="cap" id="cap">Runs on your Claude account — no API key, nothing to set up.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ RESULTS ══════════ -->
+  <section id="v-results" hidden>
+    <div class="hero" style="padding-block:22px 4px">
+      <h1 style="font-size:clamp(25px,7vw,33px)">Your dishes</h1>
+      <p id="r-criteria"></p>
+    </div>
+    <div id="r-notes"></div>
+    <div class="prog" id="prog" hidden><div class="bar"><i></i></div><p id="prog-text">Thinking…</p></div>
+    <div class="list" id="r-list"></div>
+    <div id="r-empty"></div>
+  </section>
+
+  <!-- ══════════ SAVED ══════════ -->
+  <section id="v-saved" hidden>
+    <div class="hero" style="padding-block:22px 4px">
+      <h1 style="font-size:clamp(25px,7vw,33px)">Saved</h1>
+      <p>Dishes you kept, on this device.</p>
+    </div>
+    <div class="list" id="s-list"></div>
+    <div id="s-empty"></div>
+  </section>
+
+</main>
+
+<nav class="tabs" aria-label="Main">
+  <button class="tab" data-v="search" aria-current="page" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    Search
+  </button>
+  <button class="tab" data-v="results" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13h16a8 8 0 0 1-16 0z"/><path d="M3 20h18"/><path d="M12 4c1.5 1.2 1.5 2.8 0 4"/></svg>
+    Dishes
+  </button>
+  <button class="tab" data-v="saved" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+    Saved
+    <span class="badge" id="s-count" hidden>0</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module">
+/* ══════════════════════════════════════════════════════════════════
+   Healthy Walk — client
+   ══════════════════════════════════════════════════════════════════ */
+
+const $ = (id) => document.getElementById(id);
+
+/* ── Vocabulary ──────────────────────────────────────────────────── */
+
+const PROTEINS = [
+  ['chicken','Chicken','🍗'], ['beef','Beef','🥩'], ['turkey','Turkey','🦃'],
+  ['pork','Pork','🥓'], ['lamb','Lamb','🐑'], ['salmon','Salmon','🐟'],
+  ['whitefish','White fish','🐠'], ['tuna','Tuna','🍣'], ['shrimp','Shrimp','🦐'],
+  ['eggs','Eggs','🥚'], ['tofu','Tofu','🧈'], ['legume','Beans','🫘'],
+].map(([id,label,emoji]) => ({id,label,emoji}));
+
+const DIETS = [
+  ['gluten_free','Gluten free'], ['dairy_free','Dairy free'], ['keto','Keto'],
+  ['low_carb','Low carb'], ['paleo','Paleo'], ['whole30','Whole30'],
+  ['high_protein','High protein'], ['pescatarian','Pescatarian'],
+  ['vegetarian','Vegetarian'], ['vegan','Vegan'],
+].map(([id,label]) => ({id,label}));
+
+const ALLERGENS = [
+  ['gluten','Gluten / wheat','Soy sauce, gravies and many seasoned fries contain wheat. Shared fryers are the big one and are never listed.'],
+  ['dairy','Dairy','Steaks and vegetables are very often finished with butter without it being mentioned.'],
+  ['egg','Egg','Hides in aioli, mayo, batters and most creamy white sauces.'],
+  ['peanut','Peanut','Some kitchens fry in peanut oil without saying so.'],
+  ['treenut','Tree nuts','Pesto is usually pine nut or cashew; many gluten-free crusts are almond flour.'],
+  ['soy','Soy','Soybean oil is the default frying and dressing oil across American restaurants.'],
+  ['fish','Fish','Caesar dressing and Worcestershire both contain anchovy.'],
+  ['shellfish','Shellfish','Shared fryers are the main risk; oyster sauce runs through Chinese menus.'],
+  ['sesame','Sesame','Buns, spice blends, tahini and hummus.'],
+  ['corn','Corn','Cornstarch thickens most sauces and coats most fried food.'],
+  ['nightshade','Nightshades','Paprika is in nearly every spice rub, including "blackened".'],
+].map(([id,label,note]) => ({id,label,note}));
+
+const OILS = [
+  ['none','No preference',"Don't factor cooking fat into the ranking."],
+  ['avoid_seed_oils','Avoid seed oils','Penalise canola, soybean, corn, sunflower, safflower, grapeseed, cottonseed and generic "vegetable oil".'],
+  ['prefer_avocado','Prefer avocado oil','Avoid seed oils, and reward places that cook in avocado oil.'],
+  ['prefer_olive','Prefer olive oil','Avoid seed oils, and reward olive oil.'],
+  ['prefer_animal_fat','Prefer tallow / butter / ghee','Avoid seed oils, and reward beef tallow, butter, ghee and duck fat.'],
+].map(([id,label,blurb]) => ({id,label,blurb}));
+
+const byId = (list) => Object.fromEntries(list.map((x) => [x.id, x]));
+const P = byId(PROTEINS), D = byId(DIETS), A = byId(ALLERGENS), O = byId(OILS);
+
+/* ── Copy ────────────────────────────────────────────────────────── */
+
+const ALLERGEN_DISCLAIMER =
+  'Menus rarely list every ingredient, and these are suggestions from what ' +
+  'Claude knows — not a live read of tonight\'s menu. A dish may contain ' +
+  'allergens nobody wrote down, and shared fryers, grills and prep surfaces ' +
+  'are almost never mentioned. Treat this as a shortlist to ask about, ' +
+  'never as an answer. Always confirm with the restaurant before you order.';
+
+const ALLERGEN_SHORT = 'Confirm with the restaurant before ordering.';
+
+const PROVENANCE_NOTE =
+  'These come from what Claude knows about restaurants in this area, not from ' +
+  'a live menu. Check the place still exists and still serves it — the ' +
+  'directions button searches for it on Maps.';
+
+const MACRO_NOTE =
+  'Calories and macros are estimates unless a card says the restaurant publishes them. Treat them as ±25%.';
+
+/* ── State ───────────────────────────────────────────────────────── */
+
+const state = {
+  criteria: {
+    place: '', coords: null, walk: 15,
+    proteins: [], diets: [], allergens: [], oil: 'none',
+    kcal: null, prot: null, carb: null, notes: '',
+  },
+  dishes: [],
+  saved: [],
+  busy: false,
+  ctl: null,
+  sample: null,
+};
+
+const KEY = 'healthy-walk';
+const read = (k) => { try { return localStorage.getItem(KEY + ':' + k); } catch { return null; } };
+const write = (k, v) => { try { v == null ? localStorage.removeItem(KEY + ':' + k) : localStorage.setItem(KEY + ':' + k, v); } catch {} };
+
+/* ══════════════════════════════════════════════════════════════════
+   Reading menu prose
+
+   The words that signal an allergen also appear in the phrases that
+   rule it out. "Corn tortilla" is gluten free, "rice noodles" are
+   gluten free, "no pita" means no pita. A plain substring scan flags
+   all three and silently buries good dishes — worse than useless,
+   because you never learn what you missed.
+   ══════════════════════════════════════════════════════════════════ */
+
+const CANON = [
+  [/\bbeef shortening\b/g, 'beef tallow'],
+  [/\banimal shortening\b/g, 'beef tallow'],
+  [/\bclarified butter\b/g, 'ghee'],
+  [/\bextra[- ]virgin olive oil\b/g, 'olive oil'],
+];
+
+const norm = (t) => ' ' + String(t ?? '').toLowerCase().replace(/[''']/g, '')
+  .replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+
+const canon = (t) => CANON.reduce((s, [re, to]) => s.replace(re, to), t);
+const prep = (t) => canon(norm(t));
+
+const NEG = /\b(?:no|without|hold the|minus|free of|free from|skip the|sans)\s+(?:the\s+)?([a-z-]+(?:\s+[a-z-]+)?)/g;
+const denegate = (h) => h.replace(NEG, ' ');
+
+const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const strip = (h, phrases) => phrases.reduce((s, p) => s.replace(new RegExp('\\b' + esc(p) + '(?:s|es)?\\b', 'g'), ' '), h);
+const hit = (h, terms) => terms.filter((t) => new RegExp('\\b' + esc(t) + '(?:s|es)?\\b').test(h));
+
+const SAFE = {
+  gluten: ['gluten free','gluten-free','corn tortilla','nixtamal','rice noodle','glass noodle','shirataki','rice paper','lettuce wrap','cauliflower crust','almond flour','coconut flour','chickpea pasta','rice flour','tamari','coconut aminos','zucchini noodle'],
+  dairy: ['dairy free','dairy-free','non-dairy','vegan cheese','cashew cream','coconut cream','coconut milk','oat milk','almond milk','vegan butter'],
+  egg: ['egg free','eggless','vegan mayo','eggplant'],
+  peanut: ['peanut free'],
+  treenut: ['nut free','nutmeg','water chestnut','coconut','butternut','nutritional yeast'],
+  soy: ['soy free','coconut aminos'],
+  fish: ['shellfish','fish free'],
+  shellfish: ['shellfish free'],
+  sesame: ['sesame free'],
+  corn: ['corn free','peppercorn','cornichon'],
+  nightshade: ['nightshade free','sweet potato','black pepper','peppercorn'],
+};
+
+const ALLERGEN_WORDS = {
+  gluten: { clear: ['bread','bun','roll','pasta','noodle','flour','wheat','barley','rye','couscous','orzo','pita','naan','tortilla','wrap','crouton','panko','breaded','battered','crusted','dumpling','wonton','gnocchi','farro','seitan','pastry','biscuit','waffle','pancake'],
+            hidden: ['soy sauce','teriyaki','hoisin','ponzu','malt','beer','gravy','roux','bisque','imitation crab','surimi','oyster sauce','miso','modified food starch'] },
+  dairy: { clear: ['cheese','milk','cream','butter','yogurt','mozzarella','parmesan','cheddar','feta','ricotta','queso','crema','alfredo','burrata','halloumi'],
+           hidden: ['ranch','caesar','aioli','pesto','mashed','bisque','chowder','au gratin','creamy','buttermilk','ghee','whey','brioche','naan','tzatziki'] },
+  egg: { clear: ['egg','omelet','omelette','frittata','quiche','benedict','scrambled'],
+         hidden: ['aioli','mayo','mayonnaise','caesar','hollandaise','remoulade','tartar sauce','custard','brioche','challah','pasta','tempura','batter','breaded','meatball'] },
+  peanut: { clear: ['peanut','groundnut','satay','pad thai'], hidden: ['peanut oil','szechuan','kung pao','mole','chili crisp','granola'] },
+  treenut: { clear: ['almond','cashew','walnut','pecan','pistachio','hazelnut','macadamia','pine nut','nut'],
+             hidden: ['pesto','marzipan','praline','amaretto','romesco','dukkah','baklava','nut milk'] },
+  soy: { clear: ['soy','soybean','tofu','edamame','tempeh','miso','soy sauce','tamari'],
+         hidden: ['teriyaki','hoisin','ponzu','vegetable oil','vegan cheese','worcestershire','bouillon','lecithin'] },
+  fish: { clear: ['fish','salmon','tuna','cod','halibut','anchovy','sardine','branzino','snapper','trout','mahi','sea bass','tilapia'],
+          hidden: ['caesar','worcestershire','fish sauce','nuoc cham','nam pla','xo sauce','puttanesca','kimchi','dashi','bonito','furikake'] },
+  shellfish: { clear: ['shrimp','prawn','crab','lobster','scallop','mussel','clam','oyster','crawfish','calamari','squid','octopus'],
+               hidden: ['seafood stock','bouillabaisse','paella','gumbo','oyster sauce','kimchi','fish stock','surimi'] },
+  sesame: { clear: ['sesame','tahini','hummus','halva'], hidden: ['burger bun','brioche bun','zaatar','everything bagel','falafel','baba ganoush','furikake','chili crisp','dukkah'] },
+  corn: { clear: ['corn','tortilla','polenta','grits','hominy','masa','elote','cornbread'],
+          hidden: ['corn syrup','cornstarch','modified food starch','dextrose','maltodextrin','baking powder','corn oil'] },
+  nightshade: { clear: ['tomato','potato','pepper','eggplant','aubergine','chili','jalapeno','poblano','salsa','marinara'],
+                hidden: ['paprika','cayenne','chipotle','harissa','romesco','ketchup','sriracha','gochujang','curry','bbq sauce','blackened'] },
+};
+
+/**
+ * Finding a word means the allergen is PRESENT. Not finding one means
+ * UNKNOWN — never "safe". That asymmetry is the whole point: a menu
+ * description is marketing copy, not an ingredient list.
+ */
+function checkAllergen(text, id) {
+  const rules = ALLERGEN_WORDS[id];
+  if (!rules) return { id, status: 'unknown' };
+  const h = strip(denegate(prep(text)), SAFE[id] ?? []);
+
+  const clear = hit(h, rules.clear);
+  if (clear.length) return { id, status: 'present', why: 'Contains ' + clear[0] + '.' };
+
+  const hidden = hit(h, rules.hidden);
+  if (hidden.length) return { id, status: 'likely', why: '"' + hidden[0] + '" usually contains it.' };
+
+  return { id, status: 'unknown', why: ALLERGEN_SHORT };
+}
+
+const SEED_OILS = ['canola oil','canola','rapeseed oil','soybean oil','soy oil','corn oil','cottonseed oil','sunflower oil','safflower oil','grapeseed oil','rice bran oil','vegetable oil','frying oil','fryer oil','blended oil','shortening','margarine'];
+const GOOD_FATS = { avocado: ['avocado oil'], olive: ['olive oil','evoo'], coconut: ['coconut oil'], animal: ['beef tallow','tallow','butter','ghee','duck fat','lard','schmaltz'] };
+const ALL_GOOD = Object.values(GOOD_FATS).flat();
+/* Sesame and peanut oil are flavour oils used by the teaspoon. Hard-
+   listing them strikes out most of an Asian menu over a quarter-tsp. */
+const CONTESTED = ['peanut oil','groundnut oil','sesame oil','chili oil'];
+const FRIED = ['deep fried','deep-fried','crispy fried','tempura','battered','breaded','panko','katsu','schnitzel','french fries','fries','calamari','wings','croquette','egg roll','churro'];
+const CLEAN = ['grilled','roasted','baked','steamed','poached','braised','raw','seared','smoked','charred','broiled','sashimi'];
+
+function checkFat(text) {
+  const h = denegate(prep(text));
+  const seed = hit(h, SEED_OILS);
+  if (seed.length) return { verdict: 'seed', fat: seed[0], status: 'failed', why: 'Menu names ' + seed[0] + '.' };
+
+  const good = hit(h, ALL_GOOD);
+  if (good.length) {
+    const fam = Object.entries(GOOD_FATS).find(([, l]) => l.includes(good[0]))?.[0];
+    return { verdict: 'good', fat: good[0], family: fam, status: 'confirmed', why: 'Cooked in ' + good[0] + '.' };
+  }
+
+  const cont = hit(h, CONTESTED);
+  if (cont.length) return { verdict: 'unknown', fat: cont[0], status: 'unknown', why: cont[0] + ' — a flavour oil some seed-oil avoiders accept and others don\'t.' };
+
+  const fried = hit(h, FRIED);
+  if (fried.length) return { verdict: 'unknown', fat: null, status: 'unknown', fried: true, why: '"' + fried[0] + '" means fryer oil, which is a seed oil blend unless the kitchen says otherwise.' };
+
+  const clean = hit(h, CLEAN);
+  if (clean.length) return { verdict: 'neutral', fat: null, status: 'likely', why: clean[0][0].toUpperCase() + clean[0].slice(1) + ' — little added frying oil, though the pan fat is unstated.' };
+
+  return { verdict: 'unknown', fat: null, status: 'unknown', why: 'Cooking fat not stated.' };
+}
+
+const DIET_NO = {
+  gluten_free: ['bun','bread','pasta','noodle','panko','breaded','battered','pita','naan','crouton','dumpling','flour tortilla','wonton','orzo','couscous'],
+  dairy_free: ['cheese','cream','butter','yogurt','alfredo','queso','mozzarella','parmesan','tzatziki'],
+  vegan: ['chicken','beef','pork','fish','shrimp','cheese','egg','butter','cream','bacon','lamb'],
+  vegetarian: ['chicken','beef','pork','fish','shrimp','bacon','lamb','anchovy'],
+  pescatarian: ['chicken','beef','pork','bacon','lamb'],
+  keto: ['rice','pasta','noodle','bun','tortilla','potato','fries','bread'],
+  paleo: ['cheese','rice','beans','bread','pasta','corn','peanut'],
+  whole30: ['cheese','bread','pasta','rice','beans','sugar','peanut'],
+};
+const DIET_OK = {
+  gluten_free: SAFE.gluten, dairy_free: SAFE.dairy,
+  keto: ['cauliflower rice','zucchini noodle','shirataki','lettuce wrap'],
+  paleo: ['cauliflower rice','coconut flour','almond flour','sweet potato','coconut milk'],
+  whole30: ['cauliflower rice','coconut aminos','almond flour','sweet potato'],
+  vegan: ['vegan cheese','vegan butter','beyond beef','impossible beef','jackfruit'],
+  vegetarian: ['vegan cheese','beyond beef','impossible beef'],
+  pescatarian: [],
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   Scoring
+
+   "Top having positive reviews on Google, and also a place that fits
+   my criteria's the best" — so both, weighted, neither dominating.
+   ══════════════════════════════════════════════════════════════════ */
+
+const W = { fit: 0.40, quality: 0.30, macro: 0.15, near: 0.15 };
+const CREDIT = { confirmed: 1, likely: 0.65, unknown: 0.2, failed: 0 };
+const clamp = (v) => Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+
+/** A 5.0 from four people must not beat a 4.7 from two thousand. */
+function quality(rating, count) {
+  const PRIOR = 4.3, WEIGHT = 50;
+  const v = Math.max(0, count ?? 0);
+  const adj = rating == null ? PRIOR : (v / (v + WEIGHT)) * rating + (WEIGHT / (v + WEIGHT)) * PRIOR;
+  const base = clamp((adj - 3.5) / 1.5);
+  const vol = clamp(Math.log10(Math.max(1, v)) / Math.log10(2000));
+  return clamp(base * 0.85 + vol * 0.15);
+}
+
+function macroFit(m, c) {
+  const under = (v, cap) => v == null ? null : v <= cap ? 1 : clamp(1 - (v - cap) / (cap * 0.5));
+  const over = (v, floor) => v == null ? null : v >= floor ? 1 : clamp((v - floor * 0.5) / (floor * 0.5));
+  const parts = [];
+  if (c.kcal) parts.push(under(m.calories, c.kcal));
+  if (c.carb) parts.push(under(m.carbs, c.carb));
+  if (c.prot) parts.push(over(m.protein, c.prot));
+  if (!c.kcal && !c.carb && !c.prot) return 1;
+  const known = parts.filter((p) => p !== null);
+  if (!known.length) return 0.5;
+  return clamp(known.reduce((a, b) => a + b, 0) / known.length);
+}
+
+/** Uncertainty pulls toward "don't know", not toward zero. */
+const toNeutral = (v, conf) => 0.5 + (v - 0.5) * conf;
+
+function score(dish, c) {
+  const conf = clamp(dish.confidence ?? 0.5);
+  const fit = dish.marks.length
+    ? clamp(dish.marks.reduce((s, m) => s + (CREDIT[m.status] ?? 0), 0) / dish.marks.length) : 1;
+
+  const comp = {
+    fit: toNeutral(fit, conf),
+    quality: quality(dish.rating, dish.reviewCount),
+    macro: toNeutral(macroFit(dish.macros, c), conf),
+    near: clamp(Math.exp(-1.2 * ((dish.walkMinutes ?? 10) / (c.walk || 15)))),
+  };
+
+  // Only weigh what was actually asked for, so blank macro fields don't
+  // quietly cost every dish 15 points.
+  const asked = { quality: true, near: true, fit: dish.marks.length > 0, macro: Boolean(c.kcal || c.prot || c.carb) };
+  const total = Object.entries(W).filter(([k]) => asked[k]).reduce((s, [, w]) => s + w, 0);
+
+  let out = 0;
+  for (const [k, w] of Object.entries(W)) if (asked[k]) out += (w / total) * comp[k];
+  return Math.round(clamp(out) * 100);
+}
+
+const scoreWord = (s) => s >= 85 ? 'Excellent match' : s >= 70 ? 'Strong match' : s >= 55 ? 'Good match' : s >= 40 ? 'Partial match' : 'Loose match';
+
+/* ── Macro maths ─────────────────────────────────────────────────── */
+
+function split(m) {
+  const p = (m.protein ?? 0) * 4, c = (m.carbs ?? 0) * 4, f = (m.fat ?? 0) * 9;
+  const t = p + c + f;
+  if (t <= 0) return null;
+  // Largest-remainder rounding, so the bar always totals exactly 100%.
+  const raw = [{ k: 'protein', e: p / t * 100 }, { k: 'carbs', e: c / t * 100 }, { k: 'fat', e: f / t * 100 }];
+  const fl = raw.map((r) => ({ ...r, v: Math.floor(r.e) }));
+  let rem = 100 - fl.reduce((s, r) => s + r.v, 0);
+  fl.slice().sort((a, b) => (b.e - b.v) - (a.e - a.v)).forEach((r) => { if (rem > 0) { r.v++; rem--; } });
+  return Object.fromEntries(fl.map((r) => [r.k, r.v]));
+}
+
+/* ── Analysing one dish ──────────────────────────────────────────── */
+
+function analyse(raw, c) {
+  const text = (raw.dish ?? '') + ' ' + (raw.description ?? '');
+  const marks = [];
+
+  // Protein — ticking three means "any of these", not "all".
+  if (c.proteins.length) {
+    const declared = new Set(raw.proteins ?? []);
+    const found = c.proteins.find((id) => declared.has(id));
+    if (found) marks.push({ id: found, label: P[found].label, status: 'confirmed', why: P[found].label + ' is the dish.' });
+    else if (declared.size) marks.push({ id: c.proteins[0], label: c.proteins.map((i) => P[i].label).join(' or '), status: 'failed', why: 'This dish is ' + [...declared].join(', ') + '.' });
+    else marks.push({ id: c.proteins[0], label: c.proteins.map((i) => P[i].label).join(' or '), status: 'unknown', why: 'Protein unclear.' });
+  }
+
+  // Diets
+  const claimed = new Set(raw.diets ?? []);
+  for (const id of c.diets) {
+    const label = D[id].label;
+    if (claimed.has(id)) { marks.push({ id, label, status: 'likely', why: 'Reads as ' + label.toLowerCase() + '.' }); continue; }
+    const bad = strip(denegate(prep(text)), DIET_OK[id] ?? []);
+    const found = hit(bad, DIET_NO[id] ?? []);
+    if (found.length) marks.push({ id, label, status: 'failed', why: 'Contains "' + found[0] + '".' });
+    else marks.push({ id, label, status: 'unknown', why: 'Not stated.' });
+  }
+
+  // Cooking fat
+  const fat = raw.cookingFat ? checkFat('cooked in ' + raw.cookingFat) : checkFat(text);
+  if (c.oil !== 'none') {
+    const label = O[c.oil].label;
+    const want = { prefer_avocado: 'avocado', prefer_olive: 'olive', prefer_animal_fat: 'animal' }[c.oil];
+    if (fat.verdict === 'seed') marks.push({ id: c.oil, label, status: 'failed', why: fat.why });
+    else if (fat.verdict === 'good') marks.push({ id: c.oil, label, status: (!want || fat.family === want) ? 'confirmed' : 'likely', why: fat.why });
+    else if (fat.verdict === 'neutral') marks.push({ id: c.oil, label, status: 'likely', why: fat.why });
+    else marks.push({ id: c.oil, label, status: 'unknown', why: fat.why });
+  }
+
+  // Allergens never earn score — they only exclude or warn.
+  const declaredRisk = new Set(raw.allergens ?? []);
+  const findings = c.allergens.map((id) => {
+    const f = checkAllergen(text, id);
+    if (declaredRisk.has(id) && f.status === 'unknown') return { ...f, status: 'likely', why: 'Flagged as a likely ingredient.' };
+    return f;
+  });
+
+  const macros = { calories: num(raw.calories), protein: num(raw.protein), carbs: num(raw.carbs), fat: num(raw.fat),
+                   source: raw.macroSource === 'published' ? 'published' : 'estimated' };
+  if (macros.calories == null) {
+    const implied = (macros.protein ?? 0) * 4 + (macros.carbs ?? 0) * 4 + (macros.fat ?? 0) * 9;
+    if (implied > 0) macros.calories = Math.round(implied);
+  }
+
+  let conf = clamp(raw.confidence ?? 0.5);
+  conf -= marks.filter((m) => m.status === 'unknown').length * 0.05;
+  if (fat.fried) conf -= 0.05;
+  conf = Math.min(0.9, Math.max(0.15, conf));
+
+  return {
+    name: raw.dish ?? 'Unnamed dish',
+    restaurant: raw.restaurant ?? 'Unknown',
+    area: raw.area ?? '',
+    description: raw.description ?? '',
+    price: raw.price ?? null,
+    rating: num(raw.rating),
+    reviewCount: num(raw.reviewCount) ?? 0,
+    walkMinutes: num(raw.walkMinutes) ?? 10,
+    macros, marks, findings,
+    unknownAllergens: findings.filter((f) => f.status === 'unknown').map((f) => A[f.id]?.label ?? f.id),
+    cookingFat: fat.fat,
+    confidence: conf,
+    why: raw.why ?? '',
+  };
+}
+
+const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+/** A detection excludes. Not finding one never means safe. */
+function excluded(dish, c) {
+  for (const f of dish.findings) if (f.status === 'present' || f.status === 'likely') return 'Contains ' + (A[f.id]?.label.toLowerCase() ?? f.id);
+  for (const m of dish.marks) {
+    if (m.status !== 'failed') continue;
+    if (D[m.id]) return 'Not ' + D[m.id].label.toLowerCase();
+    if (P[m.id]) return 'Wrong protein';
+    if (O[m.id]) return 'Cooked in a seed oil';
+  }
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Asking Claude
+   ══════════════════════════════════════════════════════════════════ */
+
+function describe(c) {
+  const bits = [];
+  bits.push(c.proteins.length ? c.proteins.map((i) => P[i].label.toLowerCase()).join(' or ') : 'anything');
+  if (c.diets.length) bits.push(c.diets.map((i) => D[i].label.toLowerCase()).join(', '));
+  if (c.oil !== 'none') bits.push(O[c.oil].label.toLowerCase());
+  if (c.kcal) bits.push('under ' + c.kcal + ' cal');
+  if (c.prot) bits.push(c.prot + 'g+ protein');
+  if (c.carb) bits.push('under ' + c.carb + 'g carbs');
+  if (c.allergens.length) bits.push('no ' + c.allergens.map((i) => A[i].label.toLowerCase()).join(', no '));
+  bits.push('within a ' + c.walk + ' minute walk');
+  return bits.join(', ');
+}
+
+function buildPrompt(c) {
+  const where = c.place || (c.coords ? 'latitude ' + c.coords.lat.toFixed(4) + ', longitude ' + c.coords.lng.toFixed(4) : '');
+
+  return [
+    'You know restaurants. A diner is at: ' + where + '.',
+    '',
+    'They want: ' + describe(c) + '.',
+    c.notes ? 'In their words: "' + c.notes + '"' : '',
+    '',
+    'Name up to 8 SPECIFIC DISHES at REAL restaurants in or near that area that fit.',
+    '',
+    'RULES — these matter more than being helpful:',
+    '- Only name a restaurant you are genuinely confident exists in that area. If you do not know the area well, return fewer dishes, or an empty array. An empty answer is useful; an invented restaurant sends them walking to nothing.',
+    '- Name a specific menu item, not a category. "Grilled chicken bowl", not "a salad".',
+    '- Set confidence honestly: 0-1, how sure you are that this restaurant exists there AND serves this dish. Below 0.5 if you are reaching.',
+    '- macroSource "published" ONLY for chains that actually publish nutrition (20+ US locations are required to). Otherwise "estimated", and estimate from the ingredients and a normal restaurant portion.',
+    '- Flag allergens generously, including hidden sources: soy sauce means gluten and soy, Caesar dressing means fish and egg, most fries share a fryer.',
+    '- cookingFat ONLY if the restaurant is publicly known for it (a chain that advertises beef tallow or avocado oil). Otherwise null. Do not guess from cuisine.',
+    '- rating/reviewCount: the Google rating you believe it has, or null. Do not invent precision.',
+    '- walkMinutes: your estimate of the walk from the diner, within their ' + c.walk + '-minute limit.',
+    c.allergens.length ? '- They are avoiding ' + c.allergens.map((i) => A[i].label.toLowerCase()).join(', ') + '. Do not suggest a dish you believe contains one.' : '',
+    '',
+    'Reply with ONLY a JSON array. Each element:',
+    '{"dish":"Grilled Chicken Power Bowl","restaurant":"Some Kitchen","area":"Mission District","description":"what the menu says it is","price":"$17","proteins":["chicken"],"diets":["gluten_free"],"allergens":["dairy"],"cookingFat":null,"calories":610,"protein":52,"carbs":24,"fat":34,"macroSource":"estimated","rating":4.6,"reviewCount":1200,"walkMinutes":8,"confidence":0.7,"why":"one sentence to the diner"}',
+    '',
+    'proteins from: ' + PROTEINS.map((p) => p.id).join(', '),
+    'diets from: ' + DIETS.map((d) => d.id).join(', '),
+    'allergens from: ' + ALLERGENS.map((a) => a.id).join(', '),
+  ].filter(Boolean).join('\n');
+}
+
+async function runSearch() {
+  const c = state.criteria;
+  if (!c.place && !c.coords) { toast('Tell it roughly where you are first.'); $('place').focus(); return; }
+  if (state.busy) return;
+  if (!state.sample) { toast('Claude is not available in this view.'); return; }
+
+  state.busy = true;
+  state.ctl = new AbortController();
+  $('find').disabled = true;
+  $('r-list').replaceChildren();
+  $('r-empty').replaceChildren();
+  $('r-criteria').textContent = describe(c);
+  renderNotices();
+  $('prog').hidden = false;
+  $('prog-text').textContent = 'Thinking about what is near you…';
+  show('results');
+
+  try {
+    const raw = await state.sample.json(buildPrompt(c), {
+      signal: state.ctl.signal,
+      modelTier: 'default',
+      onText: () => { $('prog-text').textContent = 'Writing up what it found…'; },
+    });
+
+    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.dishes) ? raw.dishes : []);
+    const kept = [], dropped = [];
+
+    for (const item of list) {
+      if (!item || typeof item !== 'object' || !item.dish) continue;
+      const d = analyse(item, c);
+      const no = excluded(d, c);
+      if (no) { dropped.push({ name: d.name, why: no }); continue; }
+      d.score = score(d, c);
+      kept.push(d);
+    }
+
+    kept.sort((a, b) => b.score - a.score || (a.walkMinutes - b.walkMinutes));
+    state.dishes = kept;
+
+    $('prog').hidden = true;
+    kept.forEach((d, i) => $('r-list').append(card(d, i)));
+
+    if (!kept.length) {
+      empty($('r-empty'), list.length ? 'Everything was filtered out' : 'Nothing came back',
+        list.length
+          ? dropped.slice(0, 3).map((d) => d.name + ' — ' + d.why.toLowerCase()).join('. ') + '. Loosen one criterion and try again.'
+          : 'Claude did not have confident suggestions for that area. Try a bigger or better-known neighbourhood.');
+    } else if (dropped.length) {
+      const p = document.createElement('p');
+      p.className = 'hint';
+      p.style.marginTop = '14px';
+      p.textContent = dropped.length + (dropped.length === 1 ? ' dish was' : ' dishes were') + ' filtered out: ' + dropped.map((d) => d.name + ' (' + d.why.toLowerCase() + ')').join(', ') + '.';
+      $('r-empty').append(p);
+    }
+  } catch (e) {
+    $('prog').hidden = true;
+    const code = e?.code ?? 'upstream_error';
+    if (code === 'cancelled') { /* their choice */ }
+    else if (code === 'not_granted' || code === 'sampling_disabled') {
+      empty($('r-empty'), 'Claude access not allowed', 'This page asks Claude on your own account. Allow it when prompted, then try again.');
+    } else if (code === 'rate_limited') {
+      empty($('r-empty'), 'Too many requests', 'Give it a minute and try again.');
+    } else if (code === 'invalid_json') {
+      empty($('r-empty'), 'That answer came back garbled', 'Tap Find my dish again — it usually works second time.');
+    } else {
+      empty($('r-empty'), 'That did not work', e?.message ?? 'Something went wrong. Try again.');
+    }
+  } finally {
+    state.busy = false;
+    state.ctl = null;
+    $('find').disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Rendering
+   ══════════════════════════════════════════════════════════════════ */
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function card(d, index) {
+  const art = el('article', 'dish');
+
+  const head = el('div', 'head');
+  head.append(el('span', null, initials(d.restaurant)));
+  if (index === 0) head.append(el('span', 'rank', 'Best match'));
+  const sc = el('div', 'score');
+  sc.title = scoreWord(d.score) + ' — ' + d.score + ' out of 100';
+  sc.setAttribute('aria-label', scoreWord(d.score) + ', ' + d.score + ' out of 100');
+  sc.append(el('b', null, String(d.score)), el('i', null, '/100'));
+  head.append(sc);
+  art.append(head);
+
+  const body = el('div', 'body');
+  body.append(el('h3', null, d.name));
+
+  const where = el('p', 'where');
+  where.append(el('b', null, d.restaurant));
+  if (d.area) where.append(document.createTextNode(' · ' + d.area));
+  if (d.price) where.append(document.createTextNode(' · ' + d.price));
+  body.append(where);
+
+  const meta = el('p', 'meta');
+  if (d.rating != null) meta.append(el('span', null, '★ ' + d.rating.toFixed(1) + (d.reviewCount ? ' (' + compact(d.reviewCount) + ')' : '')));
+  meta.append(el('span', null, '🚶 ~' + d.walkMinutes + ' min'));
+  body.append(meta);
+
+  if (d.description) body.append(el('p', 'desc', d.description));
+
+  const tags = el('div', 'tags');
+  for (const m of d.marks) {
+    if (m.status === 'failed') continue;
+    const cls = m.status === 'confirmed' ? 'yes' : m.status === 'likely' ? 'maybe' : 'dunno';
+    const t = el('span', 'tag ' + cls);
+    t.title = m.why ?? '';
+    t.append(el('span', null, m.status === 'confirmed' ? '✓' : m.status === 'likely' ? '≈' : '?'), document.createTextNode(m.label));
+    t.setAttribute('aria-label', m.label + ': ' + (m.status === 'confirmed' ? 'confirmed' : m.status === 'likely' ? 'likely' : 'not stated'));
+    tags.append(t);
+  }
+  if (tags.children.length) body.append(tags);
+
+  body.append(macroBlock(d.macros));
+
+  if (d.unknownAllergens.length) {
+    const w = el('p', 'warn');
+    w.append(el('span', null, '⚠'));
+    const names = d.unknownAllergens.map((n) => n.toLowerCase());
+    const list = names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' or ' + names[names.length - 1];
+    w.append(el('span', null, "Can't tell whether this contains " + list + ' — ask before ordering.'));
+    body.append(w);
+  }
+
+  const acts = el('div', 'acts');
+  const dir = el('a', 'btn go', 'Get directions');
+  dir.href = 'https://www.google.com/maps/search/?api=1&query=' +
+    encodeURIComponent(d.restaurant + (d.area ? ' ' + d.area : '') + (state.criteria.place ? ' ' + state.criteria.place : ''));
+  dir.target = '_blank';
+  dir.rel = 'noopener noreferrer';
+
+  const save = el('button', 'btn save');
+  save.type = 'button';
+  paintSave(save, isSaved(d));
+  save.addEventListener('click', () => toggleSave(d, save));
+
+  acts.append(dir, save);
+  body.append(acts);
+
+  art.append(body);
+  return art;
+}
+
+function macroBlock(m) {
+  const box = el('div', 'macros');
+  const hd = el('div', 'mhd');
+
+  const k = el('p', 'kcal');
+  if (m.calories != null) { k.append(el('b', null, String(Math.round(m.calories))), el('span', null, 'cal')); }
+  else k.append(el('span', null, 'Calories unknown'));
+
+  const src = el('p', 'src' + (m.source === 'published' ? ' pub' : ''),
+    m.source === 'published' ? 'Published by the restaurant' : 'Estimated ±25%');
+
+  hd.append(k, src);
+  box.append(hd);
+
+  const s = split(m);
+  if (!s) { box.append(el('p', 'mnone', 'No macro breakdown for this one.')); return box; }
+
+  const bar = el('div', 'mbar');
+  bar.setAttribute('role', 'img');
+  bar.setAttribute('aria-label',
+    'Macro split: protein ' + Math.round(m.protein ?? 0) + ' grams, ' + s.protein + ' percent of calories. ' +
+    'Carbs ' + Math.round(m.carbs ?? 0) + ' grams, ' + s.carbs + ' percent. ' +
+    'Fat ' + Math.round(m.fat ?? 0) + ' grams, ' + s.fat + ' percent.');
+
+  for (const [key, cls, label] of [['protein','p','Protein'], ['carbs','c','Carbs'], ['fat','f','Fat']]) {
+    const seg = el('i', cls);
+    seg.style.flexGrow = String(s[key]);
+    seg.title = label + ': ' + Math.round(m[key] ?? 0) + 'g, ' + s[key] + '% of calories';
+    bar.append(seg);
+  }
+  box.append(bar);
+
+  const leg = el('div', 'mlegend');
+  for (const [key, cls, label] of [['protein','p','Protein'], ['carbs','c','Carbs'], ['fat','f','Fat']]) {
+    const item = el('div');
+    const lab = el('p', 'lab');
+    const sw = el('span', 'sw ' + cls);
+    sw.setAttribute('aria-hidden', 'true');
+    lab.append(sw, document.createTextNode(label));
+    item.append(lab, el('p', 'g', Math.round(m[key] ?? 0) + 'g'), el('p', 'pc', s[key] + '% of cal'));
+    leg.append(item);
+  }
+  box.append(leg);
+  return box;
+}
+
+const initials = (n) => String(n || '?').split(/\s+/).slice(0, 2).map((w) => w[0] ?? '').join('').toUpperCase();
+const compact = (n) => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : String(n);
+
+function empty(host, title, text) {
+  host.replaceChildren();
+  const box = el('div', 'empty');
+  box.append(el('h3', null, title), el('p', null, text));
+  host.append(box);
+}
+
+function renderNotices() {
+  const host = $('r-notes');
+  host.replaceChildren();
+
+  const prov = el('div', 'note info');
+  prov.append(el('span', 'ic', 'ℹ'), el('p', null, PROVENANCE_NOTE));
+  host.append(prov);
+
+  if (state.criteria.allergens.length) {
+    const w = el('div', 'note warn');
+    w.append(el('span', 'ic', '⚠'), el('p', null, ALLERGEN_DISCLAIMER));
+    host.append(w);
+  }
+
+  const m = el('div', 'note info');
+  m.append(el('span', 'ic', 'ℹ'), el('p', null, MACRO_NOTE));
+  host.append(m);
+}
+
+/* ── Saved ───────────────────────────────────────────────────────── */
+
+const keyOf = (d) => (d.restaurant + '::' + d.name).toLowerCase();
+const isSaved = (d) => state.saved.some((s) => keyOf(s) === keyOf(d));
+
+function paintSave(btn, on) {
+  btn.setAttribute('aria-pressed', String(on));
+  btn.textContent = on ? '✓ Saved' : 'Save for later';
+}
+
+function toggleSave(d, btn) {
+  const k = keyOf(d);
+  const at = state.saved.findIndex((s) => keyOf(s) === k);
+  if (at === -1) { state.saved.unshift(d); toast('Saved'); }
+  else { state.saved.splice(at, 1); toast('Removed'); }
+  write('saved', JSON.stringify(state.saved));
+  paintSave(btn, at === -1);
+  renderSaved();
+}
+
+function renderSaved() {
+  const badge = $('s-count');
+  badge.hidden = state.saved.length === 0;
+  badge.textContent = String(state.saved.length);
+
+  const list = $('s-list');
+  list.replaceChildren();
+  $('s-empty').replaceChildren();
+
+  if (!state.saved.length) {
+    empty($('s-empty'), 'Nothing saved yet', 'Tap Save for later on any dish and it will wait here.');
+    return;
+  }
+  state.saved.forEach((d, i) => list.append(card(d, -1)));
+}
+
+/* ── Chrome ──────────────────────────────────────────────────────── */
+
+function show(view) {
+  for (const v of ['search', 'results', 'saved']) $('v-' + v).hidden = v !== view;
+  for (const t of document.querySelectorAll('.tab')) {
+    if (t.dataset.v === view) t.setAttribute('aria-current', 'page');
+    else t.removeAttribute('aria-current');
+  }
+  if (view === 'saved') renderSaved();
+  window.scrollTo({ top: 0 });
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
+}
+
+/* ── Form wiring ─────────────────────────────────────────────────── */
+
+function chipSet(host, items, opts) {
+  host.replaceChildren();
+  for (const item of items) {
+    const b = el('button', 'chip' + (opts.danger ? ' danger' : ''));
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(opts.on(item)));
+    if (item.emoji) { const s = el('span', null, item.emoji); s.setAttribute('aria-hidden', 'true'); b.append(s); }
+    b.append(document.createTextNode(item.label));
+    b.addEventListener('click', () => {
+      opts.hit(item);
+      [...host.children].forEach((sib, i) => sib.setAttribute('aria-pressed', String(opts.on(items[i]))));
+      persist();
+      opts.after?.();
+    });
+    host.append(b);
+  }
+}
+
+const toggle = (list, id) => { const i = list.indexOf(id); i === -1 ? list.push(id) : list.splice(i, 1); };
+
+function allergyNote() {
+  const c = state.criteria;
+  $('allergy-note').hidden = c.allergens.length === 0;
+  if (!c.allergens.length) return;
+  const extra = c.allergens.map((id) => A[id]?.note).filter(Boolean).slice(0, 2).join(' ');
+  $('allergy-note-text').textContent = (ALLERGEN_DISCLAIMER + ' ' + extra).trim();
+}
+
+function oilHint() {
+  $('oil-hint').textContent = O[state.criteria.oil]?.blurb ?? '';
+}
+
+function persist() {
+  write('criteria', JSON.stringify({ ...state.criteria, coords: null }));
+}
+
+function restore() {
+  try {
+    const saved = JSON.parse(read('criteria') ?? 'null');
+    if (saved) Object.assign(state.criteria, saved, { coords: null });
+  } catch {}
+  try {
+    const s = JSON.parse(read('saved') ?? '[]');
+    if (Array.isArray(s)) state.saved = s;
+  } catch {}
+  const t = read('theme');
+  if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+}
+
+function syncForm() {
+  const c = state.criteria;
+  $('place').value = c.place ?? '';
+  $('walk').value = String(c.walk);
+  $('walk-out').textContent = c.walk + ' min';
+  $('kcal').value = c.kcal ?? '';
+  $('prot').value = c.prot ?? '';
+  $('carb').value = c.carb ?? '';
+  $('notes').value = c.notes ?? '';
+}
+
+/* ── Boot ────────────────────────────────────────────────────────── */
+
+restore();
+
+chipSet($('c-protein'), PROTEINS, { on: (i) => state.criteria.proteins.includes(i.id), hit: (i) => toggle(state.criteria.proteins, i.id) });
+chipSet($('c-diet'), DIETS, { on: (i) => state.criteria.diets.includes(i.id), hit: (i) => toggle(state.criteria.diets, i.id) });
+chipSet($('c-allergen'), ALLERGENS, { on: (i) => state.criteria.allergens.includes(i.id), hit: (i) => toggle(state.criteria.allergens, i.id), danger: true, after: allergyNote });
+chipSet($('c-oil'), OILS, { on: (i) => state.criteria.oil === i.id, hit: (i) => { state.criteria.oil = i.id; }, after: oilHint });
+
+allergyNote();
+oilHint();
+syncForm();
+renderSaved();
+
+$('place').addEventListener('change', (e) => { state.criteria.place = e.target.value.trim(); persist(); });
+$('walk').addEventListener('input', (e) => { state.criteria.walk = Number(e.target.value); $('walk-out').textContent = state.criteria.walk + ' min'; persist(); });
+for (const [id, key] of [['kcal', 'kcal'], ['prot', 'prot'], ['carb', 'carb']]) {
+  $(id).addEventListener('change', (e) => { const v = e.target.value.trim(); state.criteria[key] = v === '' ? null : Number(v); persist(); });
+}
+$('notes').addEventListener('change', (e) => { state.criteria.notes = e.target.value; persist(); });
+$('find').addEventListener('click', runSearch);
+
+$('locate').addEventListener('click', () => {
+  if (!navigator.geolocation) { toast('No location support here — type where you are.'); return; }
+  $('place-hint').textContent = 'Finding you…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.criteria.coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      $('place-hint').textContent = 'Got your position. A neighbourhood name still helps — add one if you can.';
+    },
+    () => { $('place-hint').textContent = 'Location blocked — type your neighbourhood instead.'; $('place').focus(); },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+  );
+});
+
+for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => show(t.dataset.v));
+
+$('theme').addEventListener('click', () => {
+  const now = document.documentElement.dataset.theme;
+  const next = now === 'dark' ? 'light' : now === 'light' ? '' : 'dark';
+  if (next) document.documentElement.dataset.theme = next; else delete document.documentElement.dataset.theme;
+  write('theme', next || null);
+});
+
+// Claude is what makes the search work. Resolve it without blocking paint,
+// and survive a context that has no runtime at all (a local preview).
+Promise.resolve(window.claude?.use?.('sample') ?? null).then((s) => {
+  state.sample = s;
+  if (!s) {
+    $('find').disabled = true;
+    $('cap').textContent = 'Claude is not available in this view, so searching is off. Open this page in Claude to use it.';
+  }
+});
+</script>
